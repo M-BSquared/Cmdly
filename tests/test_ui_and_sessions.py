@@ -113,6 +113,31 @@ class TestUiAndSessions(unittest.TestCase):
         self.assertEqual(modal.interval_slider.value(), 2)
         self.assertEqual(modal.timeout_slider.value(), 6)
 
+    def test_settings_modal_and_themes(self):
+        from app.ui.widgets.settings_modal import SettingsModalWidget
+        from app.ui.styles import theme_manager
+        modal = SettingsModalWidget(self.config_mgr)
+        self.assertIsNotNone(modal)
+
+        # Select midnight theme
+        modal._select_theme("midnight")
+        self.assertEqual(self.config_mgr.get_theme(), "midnight")
+        self.assertEqual(theme_manager.current_theme_id, "midnight")
+
+        # Select apple_dark theme
+        modal._select_theme("apple_dark")
+        self.assertEqual(self.config_mgr.get_theme(), "apple_dark")
+        self.assertEqual(theme_manager.current_theme_id, "apple_dark")
+
+    def test_main_window_bottom_bar_and_resizability(self):
+        from app.ui.main_window import MainWindow
+        win = MainWindow(self.config_mgr)
+        self.assertGreaterEqual(win.minimumWidth(), 380)
+        self.assertGreaterEqual(win.minimumHeight(), 440)
+        self.assertTrue(win.settings_btn.isEnabled())
+        self.assertIn("Profile", win.counter_label.text())
+        win.close()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -87,6 +87,49 @@ python3 run.py
 Das Projekt verfügt über eine vollständige Test-Suite:
 
 ```bash
+### 6. Settings Modal & Multi-Theme System
+* **Unten-Links Settings-Button (⚙️):** Ein Klick auf "Settings" öffnet das In-App Modal Overlay für Einstellungen.
+* **5 Integrierte Themes mit Live-Umschaltung:**
+  * 🌌 **Tesla Cyber (Dark Smoked):** Obsidian Glas, Electric Cyan Akzente (`#38bdf8`), Tesla Red Stopp.
+  * 🌃 **Midnight Obsidian (Deep Indigo):** Tiefblaue Nacht-Ästhetik mit Indigo-Neon (`#818cf8`).
+  * 🛸 **Corvus Flight Deck (Charcoal):** Klassisches Schwalby Titanium-Design mit Aviation Amber (`#f59e0b`).
+  * 🍏 **Apple Smoked Glass:** macOS Sonoma/Sequoia Smoked Glass mit Apple Blue (`#0a84ff`).
+  * ☀️ **Light Frosted (Clear Day):** Helles, transparentes Frosted Glass mit Slate Blue (`#0071e3`).
+* **Hardware-beschleunigtes macOS Frosted Glass (`mac_blur.py`):** Nutzt native Cocoa `NSVisualEffectView` hinter dem transluzenten Fenster für echten Blur von Hintergrundfenstern und Wallpaper.
+* **Persistenz:** Das gewählte Theme wird automatisch in `~/.cmdly/config.json` gesichert.
+
+---
+
+## 🚀 Installation & Start
+
+### Voraussetzungen
+* Python 3.10+ (empfohlen: 3.11, 3.12 oder 3.13)
+
+### Schnellstart
+
+```bash
+# 1. Repository klonen oder in das Verzeichnis wechseln:
+cd /Users/maximilian/Developer/Cmdly
+
+# 2. Virtuelle Umgebung aktivieren (falls noch nicht aktiv):
+source .venv/bin/activate
+
+# 3. Abhängigkeiten installieren:
+pip install -r requirements.txt
+
+# 4. Cmdly starten:
+./run.sh
+# oder
+python3 run.py
+```
+
+---
+
+## 🧪 Tests ausführen
+
+Das Projekt verfügt über eine vollständige Test-Suite (15 Tests):
+
+```bash
 .venv/bin/python3 -m unittest discover tests
 ```
 
@@ -97,7 +140,7 @@ Das Projekt verfügt über eine vollständige Test-Suite:
 ```
 Cmdly/
 ├── app/
-│   ├── config.py              # Konfigurationsmanager (~/.cmdly/config.json)
+│   ├── config.py              # Konfigurationsmanager (~/.cmdly/config.json & Theme-Speicherung)
 │   ├── models.py              # Datenmodelle & Shell-Quoting-Logik
 │   ├── main.py                # Qt-Anwendungs-Einstiegspunkt
 │   ├── network/
@@ -109,26 +152,28 @@ Cmdly/
 │   │   ├── ssh_session.py     # Interaktive Paramiko-SSH-Shell
 │   │   └── session_manager.py # Session-Lifecycle & Event-Routing
 │   └── ui/
-│       ├── icons.py           # Vektor-SVG-Icons (CPU, Server, Play, Stop, etc.)
-│       ├── styles.py          # Tesla Dark Smoked Glass Theme & CSS-Tokens
+│       ├── icons.py           # Vektor-SVG-Icons (CPU, Settings, Server, Play, Stop, etc.)
+│       ├── styles.py          # Multi-Theme-Engine & SF Pro Typografie-System
+│       ├── mac_blur.py        # Native macOS Cocoa NSVisualEffectView Vibrancy
 │       ├── widgets/
 │       │   ├── companion_bar.py    # Companion-Telemetrie-Status-Strip
-│       │   ├── companion_modal.py  # In-App Dark Smoked Glass Modal
+│       │   ├── companion_modal.py  # In-App Begleitcomputer-Modal
+│       │   ├── settings_modal.py   # In-App Settings & Theme-Auswahl-Modal
 │       │   ├── modal_overlay.py    # Frosted Glass Modal-Backdrop
 │       │   ├── ticked_slider.py    # HUD-Touchscreen-Slider mit Ticks
-│       │   ├── segmented_control.py# Tesla Capsule Segmented Control
+│       │   ├── segmented_control.py# Capsule Segmented Control
 │       │   ├── toggle_switch.py    # Minimalistischer Capsule-Switch
-│       │   ├── shelf_row.py        # Smoked Obsidian Button-Zeile
+│       │   ├── shelf_row.py        # Taktile Frosted Glass Button-Zeile
 │       │   └── terminal_widget.py  # ANSI-Terminal-Widget
 │       ├── dialogs/
 │       │   └── terminal_window.py  # Dedicated Floating Terminal Window
 │       ├── views/
-│       │   ├── shelf_view.py       # Shelf-Ansicht
-│       │   └── editor_view.py      # Button-Editor
-│       └── main_window.py          # Hauptfenster
+│       │   ├── shelf_view.py       # Shelf-Ansicht (resizable mit Top-Alignment)
+│       │   └── editor_view.py      # Scrollbarer Button-Editor
+│       └── main_window.py          # Hauptfenster mit Bottom-Bar (Settings & Status)
 ├── tests/
 │   ├── test_cmdly.py          # Unit-Tests für Modelle & Konfiguration
-│   └── test_ui_and_sessions.py# Integrationstests für UI & PTY-Sessions
+│   └── test_ui_and_sessions.py# Integrationstests für UI, Themes & PTY-Sessions
 ├── requirements.txt           # PySide6 & Paramiko
 ├── run.py                     # Startskript
 ├── run.sh                     # Ausführbares Shell-Startskript

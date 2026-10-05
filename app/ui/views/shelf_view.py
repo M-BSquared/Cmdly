@@ -1,4 +1,4 @@
-"""Main Shelf View showing the launch button rows with Tesla smoked glass styling."""
+"""Main Shelf View showing the launch button rows with clean frosted glass layout."""
 
 from typing import List, Dict, Optional
 from PySide6.QtWidgets import (
@@ -16,15 +16,10 @@ from app.models import ButtonConfig, SshConnection, MAX_BUTTONS, TARGET_SSH
 from app.ui.widgets.shelf_row import ShelfRow
 from app.ui.icons import get_icon
 from app.ui.styles import (
-    TESLA_CARD,
-    TESLA_BORDER,
-    TESLA_INPUT,
-    TEXT_TITLE,
-    TEXT_BODY,
-    TEXT_MUTED,
-    ACCENT_CYAN,
-    RADIUS_CARD,
+    theme_manager,
     RADIUS_BTN,
+    FONT_FAMILY,
+    MONO_FONT,
 )
 
 
@@ -42,103 +37,141 @@ class ShelfView(QWidget):
         self.row_widgets: Dict[str, ShelfRow] = {}
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(12, 6, 12, 12)
-        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(8)
 
-        # Card container: Tesla Smoked Glass Card
-        self.card = QFrame(self)
-        self.card.setObjectName("Card")
-        self.card.setStyleSheet(f"""
-            QFrame#Card {{
-                background-color: {TESLA_CARD};
-                border: 1px solid {TESLA_BORDER};
-                border-radius: {RADIUS_CARD}px;
-            }}
-        """)
-        card_layout = QVBoxLayout(self.card)
-        card_layout.setContentsMargins(14, 14, 14, 14)
-        card_layout.setSpacing(10)
-
-        # Rows container inside scroll area
-        self.scroll_area = QScrollArea(self.card)
+        # Scroll Area for rows
+        self.scroll_area = QScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QFrame.NoFrame)
+        self.scroll_area.setStyleSheet("background: transparent; border: none;")
 
         self.rows_container = QWidget(self.scroll_area)
+        self.rows_container.setStyleSheet("background: transparent;")
         self.rows_layout = QVBoxLayout(self.rows_container)
         self.rows_layout.setContentsMargins(0, 0, 0, 0)
         self.rows_layout.setSpacing(6)
+        self.rows_layout.setAlignment(Qt.AlignTop)  # Keep buttons cleanly at the top!
         self.scroll_area.setWidget(self.rows_container)
-        card_layout.addWidget(self.scroll_area)
 
-        # Empty State label
-        self.empty_label = QLabel(
-            "NO LAUNCH PROFILES CONFIGURED. ADD A PROFILE TO CONTROL ON-BOARD OR REMOTE PROGRAMS.",
-            self.card,
+        main_layout.addWidget(self.scroll_area, stretch=1)
+
+        # Empty State Widget
+        self.empty_card = QFrame(self)
+        ec_layout = QVBoxLayout(self.empty_card)
+        ec_layout.setContentsMargins(20, 28, 20, 28)
+        ec_layout.setSpacing(12)
+        ec_layout.setAlignment(Qt.AlignCenter)
+
+        empty_icon = QLabel(self.empty_card)
+        empty_icon.setAlignment(Qt.AlignCenter)
+        empty_icon.setPixmap(get_icon("play", "#94a3b8", 24).pixmap(24, 24))
+        ec_layout.addWidget(empty_icon)
+
+        empty_title = QLabel("No Launch Profiles", self.empty_card)
+        empty_title.setAlignment(Qt.AlignCenter)
+        empty_title.setStyleSheet(f"font-size: 14px; font-weight: 600; font-family: {FONT_FAMILY};")
+        ec_layout.addWidget(empty_title)
+
+        empty_sub = QLabel(
+            "Add a command profile to run local scripts or remote SSH programs with one press.",
+            self.empty_card,
         )
-        self.empty_label.setWordWrap(True)
-        self.empty_label.setStyleSheet(f"font-size: 11.5px; font-weight: 600; color: {TEXT_MUTED}; letter-spacing: 0.8px; padding: 18px 4px;")
-        card_layout.addWidget(self.empty_label)
+        empty_sub.setAlignment(Qt.AlignCenter)
+        empty_sub.setWordWrap(True)
+        empty_sub.setStyleSheet(f"font-size: 12px; color: #94a3b8; font-family: {FONT_FAMILY};")
+        ec_layout.addWidget(empty_sub)
+
+        self.empty_add_btn = QPushButton("+ Add Profile", self.empty_card)
+        self.empty_add_btn.setCursor(Qt.PointingHandCursor)
+        self.empty_add_btn.setStyleSheet("""
+            QPushButton {
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 8px;
+                padding: 8px 18px;
+                font-weight: 600;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background: rgba(255, 255, 255, 0.16);
+            }
+        """)
+        self.empty_add_btn.clicked.connect(self.add_button_requested.emit)
+        ec_layout.addWidget(self.empty_add_btn)
+
+        self.empty_card.setStyleSheet("""
+            QFrame {
+                background-color: rgba(255, 255, 255, 0.04);
+                border: 1px dashed rgba(255, 255, 255, 0.14);
+                border-radius: 12px;
+            }
+        """)
+        main_layout.addWidget(self.empty_card)
+        self.empty_card.hide()
 
         # Missing Connections note
-        self.note_label = QLabel("", self.card)
+        self.note_label = QLabel("", self)
         self.note_label.setWordWrap(True)
-        self.note_label.setStyleSheet(f"font-size: 11.5px; color: {TEXT_MUTED}; padding: 4px 0;")
+        self.note_label.setStyleSheet(f"font-size: 11.5px; padding: 4px 0; font-family: {FONT_FAMILY};")
         self.note_label.hide()
-        card_layout.addWidget(self.note_label)
+        main_layout.addWidget(self.note_label)
 
-        # Add Button action bar (Tesla High-Tech Action)
-        add_bar = QWidget(self.card)
-        ab_layout = QHBoxLayout(add_bar)
-        ab_layout.setContentsMargins(0, 4, 0, 0)
+        # Add Button Row (sleek frosted secondary button)
+        self.add_bar = QWidget(self)
+        ab_layout = QHBoxLayout(self.add_bar)
+        ab_layout.setContentsMargins(0, 2, 0, 0)
         ab_layout.setSpacing(8)
 
-        self.add_btn = QPushButton("ADD BUTTON", add_bar)
+        self.add_btn = QPushButton("+ Add Button", self.add_bar)
         self.add_btn.setCursor(Qt.PointingHandCursor)
-        self.add_btn.setIcon(get_icon("plus", ACCENT_CYAN, 14))
-        self.add_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: rgba(255, 255, 255, 0.06);
-                color: {TEXT_TITLE};
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                border-radius: {RADIUS_BTN}px;
-                padding: 8px 18px;
-                font-weight: 700;
-                font-size: 11.5px;
-                letter-spacing: 0.8px;
-            }}
-            QPushButton:hover {{
-                background-color: rgba(255, 255, 255, 0.12);
-                border-color: {ACCENT_CYAN};
-            }}
-            QPushButton:disabled {{
-                opacity: 0.4;
-            }}
-        """)
         self.add_btn.clicked.connect(self.add_button_requested.emit)
         ab_layout.addWidget(self.add_btn)
         ab_layout.addStretch()
-        card_layout.addWidget(add_bar)
+        main_layout.addWidget(self.add_bar)
 
-        # Detached output log area (Cyber console)
-        self.output_area = QTextEdit(self.card)
+        # Detached output log area (for background runs)
+        self.output_area = QTextEdit(self)
         self.output_area.setReadOnly(True)
-        self.output_area.setMaximumHeight(140)
+        self.output_area.setMaximumHeight(130)
         self.output_area.setStyleSheet(f"""
             QTextEdit {{
-                background-color: {TESLA_INPUT};
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: {RADIUS_BTN}px;
+                background-color: rgba(0, 0, 0, 0.4);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 8px;
                 padding: 8px;
-                font-family: "SF Mono", Menlo, Monaco, monospace;
+                font-family: {MONO_FONT};
                 font-size: 11.5px;
-                color: {TEXT_BODY};
             }}
         """)
         self.output_area.hide()
-        card_layout.addWidget(self.output_area)
+        main_layout.addWidget(self.output_area)
 
-        main_layout.addWidget(self.card)
+        self._apply_theme()
+
+    def _apply_theme(self):
+        t = theme_manager.current_theme
+        self.add_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: rgba(255, 255, 255, 0.05);
+                color: {t['text_title']};
+                border: 1px dashed {t['border']};
+                border-radius: 8px;
+                padding: 7px 16px;
+                font-weight: 500;
+                font-size: 12px;
+                font-family: {FONT_FAMILY};
+            }}
+            QPushButton:hover {{
+                background-color: rgba(255, 255, 255, 0.10);
+                border-color: {t['accent']};
+                color: {t['accent']};
+            }}
+            QPushButton:disabled {{
+                opacity: 0.35;
+            }}
+        """)
+        self.note_label.setStyleSheet(f"font-size: 11.5px; color: {t['warning']}; padding: 4px 0; font-family: {FONT_FAMILY};")
 
     def set_data(
         self,
@@ -157,9 +190,9 @@ class ShelfView(QWidget):
         self.row_widgets.clear()
 
         has_buttons = len(buttons) > 0
-        self.empty_label.setVisible(not has_buttons)
+        self.empty_card.setVisible(not has_buttons)
         self.scroll_area.setVisible(has_buttons)
-        self.add_btn.setEnabled(len(buttons) < MAX_BUTTONS)
+        self.add_bar.setVisible(has_buttons and len(buttons) < MAX_BUTTONS)
 
         if has_buttons:
             for b in buttons:
@@ -187,8 +220,7 @@ class ShelfView(QWidget):
         if missing:
             names = ", ".join(f'"{n}"' for n in missing)
             self.note_label.setText(
-                f"UNRESOLVED SSH CONNECTIONS: {names}. "
-                "LAUNCH WILL PROMPT FOR ADDRESS AND CREDENTIALS."
+                f"Missing SSH connection: {names}. Launch will prompt for credentials."
             )
             self.note_label.show()
         else:

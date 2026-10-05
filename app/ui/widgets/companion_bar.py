@@ -1,4 +1,4 @@
-"""Companion Computer telemetry status strip with Tesla styling."""
+"""Companion Computer telemetry status strip with frosted glass styling."""
 
 from typing import Optional
 from PySide6.QtWidgets import (
@@ -12,17 +12,10 @@ from PySide6.QtCore import Signal, Qt
 from app.models import CompanionConfig
 from app.ui.icons import get_icon
 from app.ui.styles import (
-    TESLA_CARD,
-    TESLA_CARD_HOVER,
-    TESLA_BORDER,
-    TEXT_TITLE,
-    TEXT_MUTED,
-    TEXT_FAINT,
-    HEALTHY,
-    WARNING,
-    CRITICAL,
-    ACCENT_CYAN,
+    theme_manager,
     RADIUS_BTN,
+    FONT_FAMILY,
+    MONO_FONT,
 )
 
 
@@ -38,67 +31,72 @@ class CompanionBar(QFrame):
         self.error_msg: str = ""
 
         self.setCursor(Qt.PointingHandCursor)
-        self.setFixedHeight(42)
+        self.setFixedHeight(44)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(14, 4, 10, 4)
+        layout.setContentsMargins(12, 4, 10, 4)
         layout.setSpacing(10)
 
-        # Telemetry CPU Icon
-        self.icon_label = QLabel(self)
-        self.icon_label.setFixedSize(18, 18)
-        layout.addWidget(self.icon_label)
+        # Telemetry CPU Icon inside subtle container
+        self.icon_badge = QLabel(self)
+        self.icon_badge.setFixedSize(26, 26)
+        self.icon_badge.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.icon_badge)
 
-        # Name & Host text
-        self.name_label = QLabel("COMPANION COMPUTER", self)
-        self.name_label.setStyleSheet(f"font-weight: 700; font-size: 12px; color: {TEXT_TITLE}; letter-spacing: 0.6px;")
-        layout.addWidget(self.name_label)
+        # Name & Host text container
+        text_box = QWidget(self)
+        tb_layout = QHBoxLayout(text_box)
+        tb_layout.setContentsMargins(0, 0, 0, 0)
+        tb_layout.setSpacing(8)
 
-        self.host_label = QLabel("PRESS TO CONFIGURE", self)
-        self.host_label.setStyleSheet(
-            f'font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 11px; color: {TEXT_MUTED};'
+        self.name_label = QLabel("Companion Computer", text_box)
+        self.name_label.setStyleSheet(
+            f"font-weight: 600; font-size: 13px; font-family: {FONT_FAMILY};"
         )
-        layout.addWidget(self.host_label)
+        tb_layout.addWidget(self.name_label)
+
+        self.host_label = QLabel("Click to configure", text_box)
+        self.host_label.setStyleSheet(
+            f'font-family: {MONO_FONT}; font-size: 11px;'
+        )
+        tb_layout.addWidget(self.host_label)
+        layout.addWidget(text_box)
 
         layout.addStretch()
 
         # Telemetry State Pill
-        self.state_container = QWidget(self)
-        state_layout = QHBoxLayout(self.state_container)
-        state_layout.setContentsMargins(0, 0, 0, 0)
-        state_layout.setSpacing(6)
+        self.state_pill = QFrame(self)
+        sp_layout = QHBoxLayout(self.state_pill)
+        sp_layout.setContentsMargins(8, 3, 8, 3)
+        sp_layout.setSpacing(5)
 
-        self.dot_label = QLabel("●", self.state_container)
-        self.dot_label.setStyleSheet(f"font-size: 9px; color: {TEXT_FAINT};")
-        state_layout.addWidget(self.dot_label)
+        self.dot_label = QLabel("●", self.state_pill)
+        self.dot_label.setStyleSheet("font-size: 8px;")
+        sp_layout.addWidget(self.dot_label)
 
-        self.state_text = QLabel("NOT SET", self.state_container)
-        self.state_text.setStyleSheet(f"font-size: 11px; font-weight: 800; color: {TEXT_MUTED}; letter-spacing: 0.8px;")
-        state_layout.addWidget(self.state_text)
+        self.state_text = QLabel("Not Set", self.state_pill)
+        self.state_text.setStyleSheet(
+            f"font-size: 11px; font-weight: 600; font-family: {FONT_FAMILY};"
+        )
+        sp_layout.addWidget(self.state_text)
 
-        layout.addWidget(self.state_container)
+        layout.addWidget(self.state_pill)
 
-        # Arrow button for terminal (Electric Cyan)
+        # Quick SSH shell button
         self.arrow_btn = QPushButton(self)
         self.arrow_btn.setFixedSize(26, 26)
         self.arrow_btn.setCursor(Qt.PointingHandCursor)
-        self.arrow_btn.setIcon(get_icon("chevron-right", ACCENT_CYAN, 14))
-        self.arrow_btn.setToolTip("Open SSH Terminal Shell")
-        self.arrow_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: rgba(56, 189, 248, 0.08);
-                border: 1px solid rgba(56, 189, 248, 0.25);
-                border-radius: {RADIUS_BTN}px;
-            }}
-            QPushButton:hover {{
-                background-color: rgba(56, 189, 248, 0.22);
-            }}
-        """)
+        self.arrow_btn.setToolTip("Open Companion SSH Shell")
         self.arrow_btn.clicked.connect(self.open_terminal_requested.emit)
         self.arrow_btn.hide()
         layout.addWidget(self.arrow_btn)
 
-        self._update_appearance()
+        self._render_state()
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
 
     def set_data(
         self,
@@ -111,74 +109,105 @@ class CompanionBar(QFrame):
         self.state = state
         self.rtt_ms = rtt_ms
         self.error_msg = error_msg
-        self._update_appearance()
+        self._render_state()
 
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            if not self.arrow_btn.geometry().contains(event.pos()) or not self.arrow_btn.isVisible():
-                self.clicked.emit()
-        super().mousePressEvent(event)
+    def _render_state(self):
+        t = theme_manager.current_theme
 
-    def _update_appearance(self):
-        if self.companion and self.companion.host:
-            self.name_label.setText((self.companion.name or "COMPANION COMPUTER").upper())
-            self.host_label.setText(self.companion.host)
-        else:
-            self.name_label.setText("COMPANION COMPUTER")
-            self.host_label.setText("PRESS TO CONFIGURE")
-
-        # Telemetry State Styling
-        if self.state == "online":
-            border_color = HEALTHY
-            icon_color = HEALTHY
-            dot_color = HEALTHY
-            rtt_str = f" · {self.rtt_ms:.1f} MS" if self.rtt_ms is not None else ""
-            state_str = f"ONLINE{rtt_str}"
-            tooltip = f"Pinged every {self.companion.interval_s}s, online" if self.companion else ""
-            show_arrow = bool(self.companion and self.companion.connection)
+        # Determine state styling
+        if not self.companion or not self.companion.host:
+            status_text = "Not Set"
+            dot_color = t["text_faint"]
+            border_color = t["border"]
+            can_ssh = False
+            badge_icon_color = t["text_muted"]
+            host_text = "Click to configure"
+        elif self.state == "online":
+            rtt_str = f" · {self.rtt_ms:.1f} ms" if self.rtt_ms is not None else ""
+            status_text = f"Online{rtt_str}"
+            dot_color = t["healthy"]
+            border_color = t["healthy"]
+            can_ssh = bool(self.companion.connection)
+            badge_icon_color = t["healthy"]
+            host_text = self.companion.host
         elif self.state == "offline":
-            border_color = CRITICAL
-            icon_color = CRITICAL
-            dot_color = CRITICAL
-            state_str = "OFFLINE"
-            tooltip = "No reply received before timeout"
-            show_arrow = False
+            status_text = "Offline"
+            dot_color = t["stop"]
+            border_color = t["stop"]
+            can_ssh = False
+            badge_icon_color = t["stop"]
+            host_text = self.companion.host
         elif self.state == "checking":
-            border_color = WARNING
-            icon_color = TEXT_MUTED
-            dot_color = WARNING
-            state_str = "CHECKING"
-            tooltip = "Pinging companion..."
-            show_arrow = False
-        elif self.state == "error":
-            border_color = WARNING
-            icon_color = CRITICAL
-            dot_color = WARNING
-            state_str = "CANNOT PING"
-            tooltip = self.error_msg or "Cannot ping host"
-            show_arrow = False
-        else:  # unset
-            border_color = TESLA_BORDER
-            icon_color = TEXT_FAINT
-            dot_color = TEXT_FAINT
-            state_str = "NOT SET"
-            tooltip = "Click to configure companion computer"
-            show_arrow = False
+            status_text = "Checking…"
+            dot_color = t["warning"]
+            border_color = t["warning"]
+            can_ssh = False
+            badge_icon_color = t["warning"]
+            host_text = self.companion.host
+        else:
+            status_text = "Error"
+            dot_color = t["stop"]
+            border_color = t["stop"]
+            can_ssh = False
+            badge_icon_color = t["stop"]
+            host_text = self.companion.host
+
+        display_name = self.companion.name if (self.companion and self.companion.name) else "Companion Computer"
+        self.name_label.setText(display_name)
+        self.name_label.setStyleSheet(
+            f"font-weight: 600; font-size: 13px; color: {t['text_title']}; font-family: {FONT_FAMILY};"
+        )
+
+        self.host_label.setText(host_text)
+        self.host_label.setStyleSheet(
+            f'font-family: {MONO_FONT}; font-size: 11px; color: {t["text_muted"]};'
+        )
+
+        self.dot_label.setStyleSheet(f"color: {dot_color}; font-size: 8px;")
+        self.state_text.setText(status_text)
+        self.state_text.setStyleSheet(
+            f"font-size: 11px; font-weight: 600; color: {t['text_title']}; font-family: {FONT_FAMILY};"
+        )
+
+        self.icon_badge.setStyleSheet("""
+            QLabel {
+                background-color: rgba(255, 255, 255, 0.06);
+                border-radius: 6px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+            }
+        """)
+        self.icon_badge.setPixmap(get_icon("cpu", badge_icon_color, 14).pixmap(14, 14))
+
+        self.state_pill.setStyleSheet("""
+            QFrame {
+                background-color: rgba(255, 255, 255, 0.06);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 10px;
+            }
+        """)
 
         self.setStyleSheet(f"""
             CompanionBar {{
-                background-color: {TESLA_CARD};
+                background-color: rgba(255, 255, 255, 0.05);
                 border: 1px solid {border_color};
-                border-radius: {RADIUS_BTN + 2}px;
+                border-radius: 10px;
             }}
             CompanionBar:hover {{
-                background-color: {TESLA_CARD_HOVER};
+                background-color: rgba(255, 255, 255, 0.09);
             }}
         """)
 
-        self.icon_label.setPixmap(get_icon("cpu", icon_color, 18).pixmap(18, 18))
-        self.dot_label.setStyleSheet(f"font-size: 9px; color: {dot_color};")
-        self.state_text.setText(state_str)
-        self.state_text.setStyleSheet(f"font-size: 11px; font-weight: 800; color: {dot_color if self.state != 'unset' else TEXT_MUTED}; letter-spacing: 0.8px;")
-        self.setToolTip(tooltip)
-        self.arrow_btn.setVisible(show_arrow)
+        # Quick SSH Arrow
+        self.arrow_btn.setVisible(can_ssh)
+        if can_ssh:
+            self.arrow_btn.setIcon(get_icon("chevron-right", t["healthy"], 14))
+            self.arrow_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: rgba(16, 185, 129, 0.12);
+                    border: 1px solid rgba(16, 185, 129, 0.3);
+                    border-radius: 6px;
+                }}
+                QPushButton:hover {{
+                    background-color: rgba(16, 185, 129, 0.25);
+                }}
+            """)

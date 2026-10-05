@@ -7,6 +7,8 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
     QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
     QStackedWidget,
     QLabel,
     QFrame,
@@ -31,14 +33,19 @@ from app.network.ssh_manager import SshManager
 from app.sessions.session_manager import SessionManager
 from app.ui.widgets.companion_bar import CompanionBar
 from app.ui.widgets.companion_modal import CompanionModalWidget
+from app.ui.widgets.settings_modal import SettingsModalWidget
 from app.ui.widgets.modal_overlay import ModalOverlay
 from app.ui.views.shelf_view import ShelfView
 from app.ui.views.editor_view import EditorView
 from app.ui.dialogs.terminal_window import TerminalWindow
+from app.ui.mac_blur import apply_mac_vibrancy
+from app.ui.icons import get_icon
 from app.ui.styles import (
+    theme_manager,
+    FONT_FAMILY,
+    MONO_FONT,
+    RADIUS_BTN,
     MAIN_STYLESHEET,
-    TESLA_CARD,
-    TESLA_BORDER,
     TEXT_TITLE,
     TEXT_MUTED,
     HEALTHY,
@@ -50,10 +57,15 @@ class MainWindow(QMainWindow):
     def __init__(self, config_manager: ConfigManager, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setWindowTitle("Cmdly")
-        self.resize(520, 640)
-        self.setStyleSheet(MAIN_STYLESHEET)
+        self.resize(480, 580)
+        self.setMinimumSize(380, 440)  # Completely resizable!
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
 
         self.config_manager = config_manager
+        saved_theme = self.config_manager.get_theme()
+        theme_manager.set_theme(saved_theme)
+        self.setStyleSheet(theme_manager.get_stylesheet())
+
         self.session_manager = SessionManager(self)
         self.ping_service = PingService(self)
         self.terminal_windows: Dict[str, TerminalWindow] = {}
@@ -68,17 +80,10 @@ class MainWindow(QMainWindow):
         # Main Frosted Glass Card Container
         self.main_container = QFrame(self.root_widget)
         self.main_container.setObjectName("MainContainer")
-        self.main_container.setStyleSheet(f"""
-            QFrame#MainContainer {{
-                background-color: {TESLA_CARD};
-                border: 1px solid {TESLA_BORDER};
-                border-radius: 14px;
-            }}
-        """)
 
         container_layout = QVBoxLayout(self.main_container)
-        container_layout.setContentsMargins(12, 12, 12, 12)
-        container_layout.setSpacing(8)
+        container_layout.setContentsMargins(12, 12, 12, 10)
+        container_layout.setSpacing(10)
 
         # 1. Companion Strip
         self.companion_bar = CompanionBar(self.main_container)
@@ -86,12 +91,7 @@ class MainWindow(QMainWindow):
         self.companion_bar.open_terminal_requested.connect(self._open_companion_terminal)
         container_layout.addWidget(self.companion_bar)
 
-        # 2. Status message strip
-        self.status_label = QLabel("Ready", self.main_container)
-        self.status_label.setStyleSheet(f"font-size: 11px; color: {TEXT_MUTED}; padding: 0 4px; font-weight: 500;")
-        container_layout.addWidget(self.status_label)
-
-        # 3. View Stack (ShelfView & EditorView)
+        # 2. View Stack (ShelfView & EditorView)
         self.stack = QStackedWidget(self.main_container)
         self.shelf_view = ShelfView(self.stack)
         self.editor_view = EditorView(self.config_manager.get_connections(), self.stack)
@@ -100,12 +100,36 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.editor_view)
         container_layout.addWidget(self.stack, stretch=1)
 
+        # 3. Bottom Toolbar: Settings on bottom-left, Status and Counter on right
+        self.bottom_bar = QWidget(self.main_container)
+        bb_layout = QHBoxLayout(self.bottom_bar)
+        bb_layout.setContentsMargins(2, 4, 2, 0)
+        bb_layout.setSpacing(8)
+
+        self.settings_btn = QPushButton("Settings", self.bottom_bar)
+        self.settings_btn.setCursor(Qt.PointingHandCursor)
+        self.settings_btn.clicked.connect(self._open_settings_modal)
+        bb_layout.addWidget(self.settings_btn)
+
+        bb_layout.addStretch()
+
+        self.status_label = QLabel("Ready", self.bottom_bar)
+        bb_layout.addWidget(self.status_label)
+
+        self.counter_label = QLabel("", self.bottom_bar)
+        bb_layout.addWidget(self.counter_label)
+
+        container_layout.addWidget(self.bottom_bar)
+
         self.root_layout.addWidget(self.main_container)
 
-        # 4. In-App Modal Overlay for Companion Dialog (Image 2)
+        # 4. In-App Modal Overlay for Companion & Settings Dialogs
         self.modal_overlay = ModalOverlay(self.root_widget)
 
         self.setCentralWidget(self.root_widget)
+
+        # Apply initial theme styling
+        self._apply_theme()
 
         # Connect Signals
         self._connect_signals()
@@ -135,19 +159,69 @@ class MainWindow(QMainWindow):
         self.session_manager.session_stopped.connect(self._on_session_stopped)
         self.session_manager.session_error.connect(self._on_session_error)
 
+    def _apply_theme(self):
+        t = theme_manager.current_theme
+        self.main_container.setStyleSheet(f"""
+            QFrame#MainContainer {{
+                background-color: {t['card']};
+                border: 1px solid {t['border']};
+                border-radius: 14px;
+            }}
+        """)
+        self.settings_btn.setIcon(get_icon("settings", t["text_muted"], 13))
+        self.settings_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: rgba(255, 255, 255, 0.05);
+                color: {t['text_muted']};
+                border: 1px solid {t['border']};
+                border-radius: 7px;
+                padding: 4px 10px;
+                font-size: 11.5px;
+                font-weight: 500;
+                font-family: {FONT_FAMILY};
+            }}
+            QPushButton:hover {{
+                background-color: rgba(255, 255, 255, 0.12);
+                color: {t['text_title']};
+                border-color: {t['accent']};
+            }}
+        """)
+        self.status_label.setStyleSheet(f"font-size: 11px; color: {t['text_muted']}; font-family: {FONT_FAMILY};")
+        self.counter_label.setStyleSheet(f"font-size: 11px; color: {t['text_faint']}; font-family: {FONT_FAMILY};")
+        self.shelf_view._apply_theme()
+
+    def _open_settings_modal(self):
+        modal = SettingsModalWidget(self.config_manager, self.modal_overlay)
+        modal.close_requested.connect(self.modal_overlay.dismiss)
+        modal.theme_selected.connect(self._on_theme_changed)
+        self.modal_overlay.show_content(modal)
+
+    def _on_theme_changed(self, theme_id: str):
+        self.setStyleSheet(theme_manager.get_stylesheet())
+        apply_mac_vibrancy(int(self.winId()), dark=theme_manager.current_theme.get("mac_dark", True))
+        self._apply_theme()
+        self._refresh_shelf()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        apply_mac_vibrancy(int(self.winId()), dark=theme_manager.current_theme.get("mac_dark", True))
+
     def _refresh_shelf(self):
         buttons = self.config_manager.get_buttons()
         conns = self.config_manager.get_connections()
         active = {sid: True for sid, s in self.session_manager.sessions.items() if s.is_alive()}
         self.shelf_view.set_data(buttons, conns, active, self.errors)
+        count = len(buttons)
+        self.counter_label.setText(f"{count} Profile{'s' if count != 1 else ''}")
 
     def _on_ping_state_changed(self, state: str, rtt_ms: Optional[float], error: str):
         self.companion_bar.set_data(self.config_manager.get_companion(), state, rtt_ms, error)
 
     def _set_status(self, text: str, kind: str = "info"):
         self.status_label.setText(text)
-        color = HEALTHY if kind == "ok" else (CRITICAL if kind == "err" else TEXT_MUTED)
-        self.status_label.setStyleSheet(f"font-size: 11px; color: {color}; padding: 0 4px; font-weight: 500;")
+        t = theme_manager.current_theme
+        color = t["healthy"] if kind == "ok" else (t["stop"] if kind == "err" else t["text_muted"])
+        self.status_label.setStyleSheet(f"font-size: 11px; color: {color}; font-family: {FONT_FAMILY}; font-weight: 500;")
 
     # ---- Companion In-App Modal (Image 2) ------------------------------------
 

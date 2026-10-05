@@ -84,8 +84,8 @@ class CompanionModalWidget(QFrame):
         h_layout = QHBoxLayout(header)
         h_layout.setContentsMargins(0, 0, 0, 0)
 
-        title_label = QLabel("COMPANION COMPUTER", header)
-        title_label.setStyleSheet(f"font-size: 15px; font-weight: 800; color: {TEXT_TITLE}; letter-spacing: 0.8px;")
+        title_label = QLabel("Companion Computer", header)
+        title_label.setStyleSheet(f"font-size: 15px; font-weight: 600; color: {TEXT_TITLE}; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;")
         h_layout.addWidget(title_label)
 
         h_layout.addStretch()

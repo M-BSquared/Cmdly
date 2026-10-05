@@ -26,6 +26,7 @@ class ConfigManager:
         self.buttons: List[ButtonConfig] = []
         self.companion: Optional[CompanionConfig] = None
         self.connections: List[SshConnection] = []
+        self.theme: str = "tesla_dark"
         self.load()
 
     def _ensure_dir(self):
@@ -42,6 +43,7 @@ class ConfigManager:
         except Exception:
             data = {}
 
+        self.theme = data.get("theme", "tesla_dark")
         self.buttons = []
         raw_buttons = data.get("buttons", [])
         if isinstance(raw_buttons, list):
@@ -82,6 +84,7 @@ class ConfigManager:
     def save(self):
         self._ensure_dir()
         data = {
+            "theme": self.theme,
             "buttons": [b.to_dict() for b in self.buttons],
             "companion": self.companion.to_dict() if self.companion else None,
             "connections": [c.to_dict() for c in self.connections],
@@ -96,6 +99,13 @@ class ConfigManager:
             if tmp_file.exists():
                 tmp_file.unlink(missing_ok=True)
             raise e
+
+    def get_theme(self) -> str:
+        return self.theme
+
+    def set_theme(self, theme_name: str):
+        self.theme = theme_name
+        self.save()
 
     def get_buttons(self) -> List[ButtonConfig]:
         return list(self.buttons)

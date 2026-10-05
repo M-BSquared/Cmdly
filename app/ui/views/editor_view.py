@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QPushButton,
     QFrame,
+    QScrollArea,
 )
 from PySide6.QtCore import Signal, Qt
 from app.models import (
@@ -60,17 +61,22 @@ class EditorView(QWidget):
         self.is_new: bool = True
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(12, 6, 12, 12)
-        main_layout.setSpacing(12)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(10)
 
-        self.card = QFrame(self)
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.NoFrame)
+        self.scroll_area.setStyleSheet("background: transparent; border: none;")
+
+        self.card = QFrame(self.scroll_area)
         self.card.setObjectName("Card")
-        self.card.setStyleSheet(f"""
-            QFrame#Card {{
-                background-color: {TESLA_CARD};
-                border: 1px solid {TESLA_BORDER};
-                border-radius: {RADIUS_CARD}px;
-            }}
+        self.card.setStyleSheet("""
+            QFrame#Card {
+                background-color: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.10);
+                border-radius: 12px;
+            }
         """)
         card_layout = QVBoxLayout(self.card)
         card_layout.setContentsMargins(16, 16, 16, 16)
@@ -81,17 +87,17 @@ class EditorView(QWidget):
         lb_layout = QVBoxLayout(lbl_box)
         lb_layout.setContentsMargins(0, 0, 0, 0)
         lb_layout.setSpacing(4)
-        lb_title = QLabel("PROFILE NAME", lbl_box)
-        lb_title.setStyleSheet(f"font-weight: 800; font-size: 10.5px; color: {TEXT_MUTED}; letter-spacing: 1px;")
+        lb_title = QLabel("Profile Name", lbl_box)
+        lb_title.setStyleSheet(f"font-weight: 600; font-size: 12px; color: {TEXT_MUTED}; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;")
         lb_layout.addWidget(lb_title)
 
         self.label_input = QLineEdit(lbl_box)
-        self.label_input.setPlaceholderText("Start mission")
+        self.label_input.setPlaceholderText("e.g. Start Mission")
         self.label_input.textChanged.connect(self._update_preview)
         lb_layout.addWidget(self.label_input)
 
         lb_hint = QLabel("Display name on launch shelf. Defaults to command if empty.", lbl_box)
-        lb_hint.setStyleSheet(f"font-size: 11px; color: {TEXT_FAINT};")
+        lb_hint.setStyleSheet(f"font-size: 11px; color: {TEXT_FAINT}; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;")
         lb_layout.addWidget(lb_hint)
         card_layout.addWidget(lbl_box)
 
@@ -100,8 +106,8 @@ class EditorView(QWidget):
         tb_layout = QVBoxLayout(target_box)
         tb_layout.setContentsMargins(0, 0, 0, 0)
         tb_layout.setSpacing(4)
-        tb_title = QLabel("EXECUTION TARGET", target_box)
-        tb_title.setStyleSheet(f"font-weight: 800; font-size: 10.5px; color: {TEXT_MUTED}; letter-spacing: 1px;")
+        tb_title = QLabel("Execution Target", target_box)
+        tb_title.setStyleSheet(f"font-weight: 600; font-size: 12px; color: {TEXT_MUTED}; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;")
         tb_layout.addWidget(tb_title)
 
         self.target_seg = SegmentedControl(TARGETS, TARGET_LOCAL, target_box)
@@ -342,7 +348,8 @@ class EditorView(QWidget):
         ab_layout.addWidget(self.cancel_btn)
 
         card_layout.addWidget(actions_bar)
-        main_layout.addWidget(self.card)
+        self.scroll_area.setWidget(self.card)
+        main_layout.addWidget(self.scroll_area)
 
     def set_button(self, button: Optional[ButtonConfig], connections: List[SshConnection]):
         self.saved_connections = connections
