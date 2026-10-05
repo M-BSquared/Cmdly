@@ -1,20 +1,20 @@
-"""Custom ticked slider matching the Apple/Schwalby frosted design in Image 2."""
+"""Tesla-style precision touchscreen slider widget."""
 
 from typing import List
 from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import Signal, Qt, QRectF, QPointF
-from PySide6.QtGui import QPainter, QColor, QPen, QFont, QMouseEvent
-from app.ui.styles import ACCENT_ORANGE, SLATE_BORDER, SLATE_MUTED
+from PySide6.QtGui import QPainter, QColor, QPen, QFont, QMouseEvent, QRadialGradient
+from app.ui.styles import ACCENT_CYAN, TEXT_MUTED, TEXT_TITLE
 
 
 class TickedSlider(QWidget):
-    value_changed = Signal(int)  # Emits selected step value
+    value_changed = Signal(int)
 
     def __init__(self, steps: List[int], initial_value: int, parent: QWidget = None):
         super().__init__(parent)
         self.steps = steps
         self._current_index = self.steps.index(initial_value) if initial_value in self.steps else 0
-        self.setMinimumHeight(44)
+        self.setMinimumHeight(46)
         self.setCursor(Qt.PointingHandCursor)
         self._dragging = False
 
@@ -79,55 +79,62 @@ class TickedSlider(QWidget):
 
         w = float(self.width())
         margin = 16.0
-        track_y = 12.0
+        track_y = 13.0
         track_h = 4.0
         total = len(self.steps)
 
-        # 1. Inactive Track (Right side)
+        # 1. Base Inactive Track (Smoked dark line)
         start_x = self._get_step_x(0, w, margin)
         end_x = self._get_step_x(total - 1, w, margin)
         current_x = self._get_step_x(self._current_index, w, margin)
 
-        # Draw full background track
-        painter.setBrush(QColor(SLATE_BORDER))
+        painter.setBrush(QColor(255, 255, 255, 30))
         painter.setPen(Qt.NoPen)
         painter.drawRoundedRect(QRectF(start_x, track_y - track_h / 2.0, end_x - start_x, track_h), 2, 2)
 
-        # 2. Active Track (Left side in vibrant orange)
+        # 2. Active Track (Electric Tesla Cyan)
         if current_x > start_x:
-            painter.setBrush(QColor(ACCENT_ORANGE))
+            painter.setBrush(QColor(ACCENT_CYAN))
             painter.drawRoundedRect(QRectF(start_x, track_y - track_h / 2.0, current_x - start_x, track_h), 2, 2)
 
-        # 3. Tick Marks & Step Labels
-        font_labels = QFont("-apple-system", 10)
+        # 3. Precision Tick Marks & Step Labels
+        font_labels = QFont("-apple-system", 9)
+        font_labels.setLetterSpacing(QFont.AbsoluteSpacing, 0.4)
         painter.setFont(font_labels)
 
         for i, step in enumerate(self.steps):
             x = self._get_step_x(i, w, margin)
 
-            # Small tick mark on track
-            painter.setPen(QPen(QColor("#ffffff" if i <= self._current_index else SLATE_MUTED), 1.5))
+            # Precision notch on track
+            notch_color = QColor(255, 255, 255, 200) if i <= self._current_index else QColor(255, 255, 255, 70)
+            painter.setPen(QPen(notch_color, 1.5))
             painter.drawLine(QPointF(x, track_y - 2.5), QPointF(x, track_y + 2.5))
 
             # Step label text below
-            label_text = f"{step} s"
+            label_text = f"{step}S"
             is_active = (i == self._current_index)
 
             if is_active:
-                painter.setPen(QColor(ACCENT_ORANGE))
+                painter.setPen(QColor(ACCENT_CYAN))
                 font_labels.setBold(True)
                 painter.setFont(font_labels)
             else:
-                painter.setPen(QColor(SLATE_MUTED))
+                painter.setPen(QColor(TEXT_MUTED))
                 font_labels.setBold(False)
                 painter.setFont(font_labels)
 
-            text_rect = QRectF(x - 25, track_y + 8, 50, 20)
+            text_rect = QRectF(x - 22, track_y + 9, 44, 20)
             painter.drawText(text_rect, Qt.AlignHCenter | Qt.AlignTop, label_text)
 
-        # 4. Thumb (Circle at current_x)
-        thumb_radius = 8.0
-        # Outer orange ring
-        painter.setBrush(QColor(ACCENT_ORANGE))
-        painter.setPen(QPen(QColor("#ffffff"), 2.5))
+        # 4. Thumb: Luminous Cyan Glow & White Core Disc
+        # Subtle glow ring
+        glow_radius = 11.0
+        painter.setBrush(QColor(56, 189, 248, 45))
+        painter.setPen(Qt.NoPen)
+        painter.drawEllipse(QPointF(current_x, track_y), glow_radius, glow_radius)
+
+        # Core Thumb
+        thumb_radius = 6.5
+        painter.setBrush(QColor("#ffffff"))
+        painter.setPen(QPen(QColor(ACCENT_CYAN), 2.0))
         painter.drawEllipse(QPointF(current_x, track_y), thumb_radius, thumb_radius)

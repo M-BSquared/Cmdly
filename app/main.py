@@ -27,7 +27,7 @@ def main():
     app.setApplicationDisplayName("Cmdly Launcher")
 
     # Set Application Icon
-    app_icon = get_icon("cpu", "#3b82f6", 32)
+    app_icon = get_icon("cpu", "#38bdf8", 32)
     app.setWindowIcon(app_icon)
 
     config_manager = ConfigManager()

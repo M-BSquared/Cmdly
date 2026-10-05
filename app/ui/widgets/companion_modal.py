@@ -1,4 +1,4 @@
-"""In-app Frosted Companion Computer Modal matching Image 2."""
+"""In-app Frosted Companion Computer Modal with Tesla styling."""
 
 from typing import Optional, List
 from PySide6.QtWidgets import (
@@ -33,15 +33,15 @@ from app.ui.widgets.ticked_slider import TickedSlider
 from app.ui.widgets.segmented_control import SegmentedControl
 from app.ui.icons import get_icon
 from app.ui.styles import (
-    FROSTED_MODAL,
-    FROSTED_BORDER,
-    FROSTED_INPUT,
-    SLATE_TITLE,
-    SLATE_TEXT,
-    SLATE_MUTED,
-    SLATE_FAINT,
+    TESLA_MODAL,
+    TESLA_BORDER,
+    TESLA_INPUT,
+    TEXT_TITLE,
+    TEXT_BODY,
+    TEXT_MUTED,
+    TEXT_FAINT,
     HAIRLINE,
-    ACCENT_ORANGE,
+    ACCENT_CYAN,
     RADIUS_MODAL,
     RADIUS_BTN,
     CRITICAL,
@@ -49,7 +49,7 @@ from app.ui.styles import (
 
 
 class CompanionModalWidget(QFrame):
-    saved = Signal(object, object)  # (CompanionConfig, Optional[SshConnection])
+    saved = Signal(object, object)
     cleared = Signal()
     close_requested = Signal()
 
@@ -63,14 +63,14 @@ class CompanionModalWidget(QFrame):
         self.companion = current_companion
         self.saved_connections = saved_connections
 
-        self.setMinimumWidth(400)
-        self.setMaximumWidth(460)
+        self.setMinimumWidth(410)
+        self.setMaximumWidth(470)
 
-        # Style matching Image 2
+        # Style: Tesla Dark Smoked Glass Modal
         self.setStyleSheet(f"""
             CompanionModalWidget {{
-                background-color: {FROSTED_MODAL};
-                border: 1px solid {FROSTED_BORDER};
+                background-color: {TESLA_MODAL};
+                border: 1px solid rgba(255, 255, 255, 0.12);
                 border-radius: {RADIUS_MODAL}px;
             }}
         """)
@@ -84,24 +84,25 @@ class CompanionModalWidget(QFrame):
         h_layout = QHBoxLayout(header)
         h_layout.setContentsMargins(0, 0, 0, 0)
 
-        title_label = QLabel("Companion computer", header)
-        title_label.setStyleSheet(f"font-size: 19px; font-weight: 700; color: {SLATE_TITLE};")
+        title_label = QLabel("COMPANION COMPUTER", header)
+        title_label.setStyleSheet(f"font-size: 15px; font-weight: 800; color: {TEXT_TITLE}; letter-spacing: 0.8px;")
         h_layout.addWidget(title_label)
 
         h_layout.addStretch()
 
         self.close_btn = QPushButton(header)
-        self.close_btn.setFixedSize(30, 30)
+        self.close_btn.setFixedSize(28, 28)
         self.close_btn.setCursor(Qt.PointingHandCursor)
-        self.close_btn.setIcon(get_icon("x", SLATE_TITLE, 14))
+        self.close_btn.setIcon(get_icon("x", TEXT_MUTED, 14))
         self.close_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: rgba(255, 255, 255, 0.7);
-                border: 1px solid rgba(0, 0, 0, 0.06);
-                border-radius: 8px;
+                background-color: rgba(255, 255, 255, 0.06);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 6px;
             }}
             QPushButton:hover {{
-                background-color: #ffffff;
+                background-color: rgba(255, 255, 255, 0.14);
+                color: {TEXT_TITLE};
             }}
         """)
         self.close_btn.clicked.connect(self.close_requested.emit)
@@ -120,7 +121,6 @@ class CompanionModalWidget(QFrame):
         layout.addWidget(self.kind_seg)
 
         # 3. Connection / Host Field Section
-        # SSH Connection Field
         self.ssh_section = QWidget(self)
         ss_layout = QVBoxLayout(self.ssh_section)
         ss_layout.setContentsMargins(0, 0, 0, 0)
@@ -131,11 +131,10 @@ class CompanionModalWidget(QFrame):
         slr_layout.setContentsMargins(0, 0, 0, 0)
         slr_layout.setSpacing(4)
         sl_title = QLabel("SSH CONNECTION", ssh_lbl_row)
-        sl_title.setProperty("class", "FormSectionLabel")
-        sl_title.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {SLATE_MUTED}; letter-spacing: 0.6px;")
+        sl_title.setStyleSheet(f"font-size: 10.5px; font-weight: 800; color: {TEXT_MUTED}; letter-spacing: 1px;")
         slr_layout.addWidget(sl_title)
         sl_info = QLabel(ssh_lbl_row)
-        sl_info.setPixmap(get_icon("info", SLATE_FAINT, 13).pixmap(13, 13))
+        sl_info.setPixmap(get_icon("info", TEXT_FAINT, 13).pixmap(13, 13))
         sl_info.setToolTip("Select a saved connection or add a new one")
         slr_layout.addWidget(sl_info)
         slr_layout.addStretch()
@@ -166,11 +165,11 @@ class CompanionModalWidget(QFrame):
         plr_layout = QHBoxLayout(ping_lbl_row)
         plr_layout.setContentsMargins(0, 0, 0, 0)
         plr_layout.setSpacing(4)
-        pl_title = QLabel("IP ADDRESS", ping_lbl_row)
-        pl_title.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {SLATE_MUTED}; letter-spacing: 0.6px;")
+        pl_title = QLabel("IP ADDRESS / HOSTNAME", ping_lbl_row)
+        pl_title.setStyleSheet(f"font-size: 10.5px; font-weight: 800; color: {TEXT_MUTED}; letter-spacing: 1px;")
         plr_layout.addWidget(pl_title)
         pl_info = QLabel(ping_lbl_row)
-        pl_info.setPixmap(get_icon("info", SLATE_FAINT, 13).pixmap(13, 13))
+        pl_info.setPixmap(get_icon("info", TEXT_FAINT, 13).pixmap(13, 13))
         plr_layout.addWidget(pl_info)
         plr_layout.addStretch()
         ps_layout.addWidget(ping_lbl_row)
@@ -184,13 +183,13 @@ class CompanionModalWidget(QFrame):
         ps_layout.addWidget(self.host_input)
         layout.addWidget(self.ping_section)
 
-        # New Connection Form Box (expands if NEW_CONNECTION is picked)
+        # New Connection Form Box
         self.new_conn_box = QFrame(self)
         self.new_conn_box.setStyleSheet(f"""
             QFrame {{
-                background-color: rgba(255, 255, 255, 0.7);
-                border: 1px solid rgba(0, 0, 0, 0.08);
-                border-radius: 12px;
+                background-color: {TESLA_INPUT};
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 10px;
                 padding: 10px;
             }}
         """)
@@ -246,11 +245,11 @@ class CompanionModalWidget(QFrame):
         ir_layout = QHBoxLayout(interval_row)
         ir_layout.setContentsMargins(0, 0, 0, 0)
         ir_layout.setSpacing(4)
-        ir_title = QLabel("PING EVERY", interval_row)
-        ir_title.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {SLATE_MUTED}; letter-spacing: 0.6px;")
+        ir_title = QLabel("PING INTERVAL", interval_row)
+        ir_title.setStyleSheet(f"font-size: 10.5px; font-weight: 800; color: {TEXT_MUTED}; letter-spacing: 1px;")
         ir_layout.addWidget(ir_title)
         ir_info = QLabel(interval_row)
-        ir_info.setPixmap(get_icon("info", SLATE_FAINT, 13).pixmap(13, 13))
+        ir_info.setPixmap(get_icon("info", TEXT_FAINT, 13).pixmap(13, 13))
         ir_layout.addWidget(ir_info)
         ir_layout.addStretch()
         layout.addWidget(interval_row)
@@ -260,16 +259,16 @@ class CompanionModalWidget(QFrame):
         self.interval_slider.value_changed.connect(self._on_interval_changed)
         layout.addWidget(self.interval_slider)
 
-        # 6. Slider: OFFLINE AFTER
+        # 6. Slider: OFFLINE TIMEOUT
         timeout_row = QWidget(self)
         tr_layout = QHBoxLayout(timeout_row)
         tr_layout.setContentsMargins(0, 0, 0, 0)
         tr_layout.setSpacing(4)
-        tr_title = QLabel("OFFLINE AFTER", timeout_row)
-        tr_title.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {SLATE_MUTED}; letter-spacing: 0.6px;")
+        tr_title = QLabel("OFFLINE TIMEOUT", timeout_row)
+        tr_title.setStyleSheet(f"font-size: 10.5px; font-weight: 800; color: {TEXT_MUTED}; letter-spacing: 1px;")
         tr_layout.addWidget(tr_title)
         tr_info = QLabel(timeout_row)
-        tr_info.setPixmap(get_icon("info", SLATE_FAINT, 13).pixmap(13, 13))
+        tr_info.setPixmap(get_icon("info", TEXT_FAINT, 13).pixmap(13, 13))
         tr_layout.addWidget(tr_info)
         tr_layout.addStretch()
         layout.addWidget(timeout_row)
@@ -284,54 +283,55 @@ class CompanionModalWidget(QFrame):
         self.error_label.setStyleSheet(f"font-size: 11px; color: {CRITICAL};")
         layout.addWidget(self.error_label)
 
-        # 7. Action Buttons (✓ Save, ⌫ Clear, Exit) matching Image 2
+        # 7. Action Buttons (Tesla Cyber Styling)
         actions_bar = QWidget(self)
         ab_layout = QHBoxLayout(actions_bar)
         ab_layout.setContentsMargins(0, 6, 0, 0)
         ab_layout.setSpacing(10)
 
-        # ✓ Save (Orange pill)
-        self.save_btn = QPushButton("Save", actions_bar)
+        # SAVE (Tesla Electric Cyan)
+        self.save_btn = QPushButton("SAVE CONFIG", actions_bar)
         self.save_btn.setCursor(Qt.PointingHandCursor)
-        self.save_btn.setIcon(get_icon("check", "#ffffff", 14))
+        self.save_btn.setIcon(get_icon("check", "#080c14", 14))
         self.save_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {ACCENT_ORANGE};
-                color: #ffffff;
+                background-color: {ACCENT_CYAN};
+                color: #080c14;
                 border: none;
-                border-radius: 12px;
+                border-radius: {RADIUS_BTN}px;
                 padding: 10px 22px;
-                font-weight: 700;
-                font-size: 13px;
+                font-weight: 800;
+                font-size: 12px;
+                letter-spacing: 0.8px;
             }}
             QPushButton:hover {{
-                background-color: #f97316;
+                background-color: #7dd3fc;
             }}
             QPushButton:disabled {{
-                background-color: rgba(203, 213, 225, 0.6);
-                color: {SLATE_FAINT};
+                background-color: rgba(255, 255, 255, 0.08);
+                color: {TEXT_FAINT};
             }}
         """)
         self.save_btn.clicked.connect(self._save)
         ab_layout.addWidget(self.save_btn)
 
-        # ⌫ Clear (White pill)
-        self.clear_btn = QPushButton("Clear", actions_bar)
+        # CLEAR (Smoked pill)
+        self.clear_btn = QPushButton("CLEAR", actions_bar)
         self.clear_btn.setCursor(Qt.PointingHandCursor)
-        self.clear_btn.setIcon(get_icon("eraser", SLATE_TITLE, 14))
+        self.clear_btn.setIcon(get_icon("eraser", TEXT_TITLE, 14))
         self.clear_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: #ffffff;
-                color: {SLATE_TITLE};
-                border: 1px solid rgba(0, 0, 0, 0.08);
-                border-radius: 12px;
+                background-color: rgba(255, 255, 255, 0.08);
+                color: {TEXT_TITLE};
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: {RADIUS_BTN}px;
                 padding: 10px 20px;
-                font-weight: 600;
-                font-size: 13px;
+                font-weight: 700;
+                font-size: 12px;
+                letter-spacing: 0.8px;
             }}
             QPushButton:hover {{
-                background-color: rgba(255, 255, 255, 0.9);
-                border-color: rgba(0, 0, 0, 0.15);
+                background-color: rgba(255, 255, 255, 0.15);
             }}
         """)
         self.clear_btn.clicked.connect(self.cleared.emit)
@@ -339,20 +339,21 @@ class CompanionModalWidget(QFrame):
 
         ab_layout.addStretch()
 
-        # Exit (Ghost text button)
-        self.exit_btn = QPushButton("Exit", actions_bar)
+        # EXIT (Ghost link)
+        self.exit_btn = QPushButton("EXIT", actions_bar)
         self.exit_btn.setCursor(Qt.PointingHandCursor)
         self.exit_btn.setStyleSheet(f"""
             QPushButton {{
                 background: transparent;
-                color: {SLATE_MUTED};
+                color: {TEXT_MUTED};
                 border: none;
-                font-weight: 600;
-                font-size: 13px;
+                font-weight: 700;
+                font-size: 12px;
+                letter-spacing: 0.8px;
                 padding: 10px 14px;
             }}
             QPushButton:hover {{
-                color: {SLATE_TITLE};
+                color: {TEXT_TITLE};
             }}
         """)
         self.exit_btn.clicked.connect(self.close_requested.emit)

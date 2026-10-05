@@ -1,13 +1,14 @@
-"""Apple-style frosted segmented control matching Image 2."""
+"""Tesla-style segmented control widget."""
 
 from typing import List, Dict, Any, Optional
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QPushButton
 from PySide6.QtCore import Signal, Qt
 from app.ui.icons import get_icon
 from app.ui.styles import (
-    SLATE_TITLE,
-    SLATE_MUTED,
-    ACCENT_ORANGE,
+    TEXT_TITLE,
+    TEXT_MUTED,
+    ACCENT_CYAN,
+    RADIUS_BTN,
 )
 
 
@@ -29,12 +30,12 @@ class SegmentedControl(QWidget):
         self.layout.setContentsMargins(3, 3, 3, 3)
         self.layout.setSpacing(3)
 
-        # Container matching Image 2: white/frosted rounded pill
-        self.setStyleSheet("""
+        # Container: Dark smoked matte well with crisp hairline border
+        self.setStyleSheet(f"""
             SegmentedControl {{
-                background-color: rgba(255, 255, 255, 0.65);
-                border: 1px solid rgba(0, 0, 0, 0.08);
-                border-radius: 12px;
+                background-color: rgba(10, 12, 16, 0.85);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: {RADIUS_BTN + 2}px;
             }}
         """)
 
@@ -42,7 +43,7 @@ class SegmentedControl(QWidget):
             val = opt["value"]
             label = opt.get("label", val)
 
-            btn = QPushButton(label, self)
+            btn = QPushButton(label.upper(), self)
             btn.setCursor(Qt.PointingHandCursor)
             btn.clicked.connect(lambda checked=False, v=val: self.set_value(v))
             self.buttons[val] = btn
@@ -69,33 +70,34 @@ class SegmentedControl(QWidget):
             if is_active:
                 btn.setStyleSheet(f"""
                     QPushButton {{
-                        background-color: #ffffff;
-                        color: {SLATE_TITLE};
-                        border: 1px solid rgba(0, 0, 0, 0.06);
-                        border-radius: 9px;
-                        padding: 7px 14px;
+                        background-color: rgba(255, 255, 255, 0.12);
+                        color: {TEXT_TITLE};
+                        border: 1px solid rgba(255, 255, 255, 0.16);
+                        border-radius: {RADIUS_BTN - 1}px;
+                        padding: 7px 16px;
                         font-weight: 700;
-                        font-size: 13px;
+                        font-size: 11.5px;
+                        letter-spacing: 0.8px;
                     }}
                 """)
-                # In Image 2: SSH icon is orange #ea580c, Ping is dark/accent
-                icon_color = ACCENT_ORANGE if val == "ssh" else SLATE_TITLE
                 if icon_name:
-                    btn.setIcon(get_icon(icon_name, icon_color, 15))
+                    btn.setIcon(get_icon(icon_name, ACCENT_CYAN, 14))
             else:
                 btn.setStyleSheet(f"""
                     QPushButton {{
                         background-color: transparent;
-                        color: {SLATE_MUTED};
+                        color: {TEXT_MUTED};
                         border: none;
-                        border-radius: 9px;
-                        padding: 7px 14px;
-                        font-weight: 500;
-                        font-size: 13px;
+                        border-radius: {RADIUS_BTN - 1}px;
+                        padding: 7px 16px;
+                        font-weight: 600;
+                        font-size: 11.5px;
+                        letter-spacing: 0.8px;
                     }}
                     QPushButton:hover {{
-                        color: {SLATE_TITLE};
+                        color: {TEXT_TITLE};
+                        background-color: rgba(255, 255, 255, 0.04);
                     }}
                 """)
                 if icon_name:
-                    btn.setIcon(get_icon(icon_name, SLATE_MUTED, 15))
+                    btn.setIcon(get_icon(icon_name, TEXT_MUTED, 14))

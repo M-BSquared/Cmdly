@@ -1,4 +1,4 @@
-"""Main Shelf View showing the launch button rows with Apple frosted design."""
+"""Main Shelf View showing the launch button rows with Tesla smoked glass styling."""
 
 from typing import List, Dict, Optional
 from PySide6.QtWidgets import (
@@ -16,22 +16,23 @@ from app.models import ButtonConfig, SshConnection, MAX_BUTTONS, TARGET_SSH
 from app.ui.widgets.shelf_row import ShelfRow
 from app.ui.icons import get_icon
 from app.ui.styles import (
-    FROSTED_CARD,
-    FROSTED_BORDER,
-    FROSTED_INPUT,
-    SLATE_TITLE,
-    SLATE_TEXT,
-    SLATE_MUTED,
+    TESLA_CARD,
+    TESLA_BORDER,
+    TESLA_INPUT,
+    TEXT_TITLE,
+    TEXT_BODY,
+    TEXT_MUTED,
+    ACCENT_CYAN,
     RADIUS_CARD,
     RADIUS_BTN,
 )
 
 
 class ShelfView(QWidget):
-    launch_requested = Signal(object)      # (ButtonConfig)
-    terminal_requested = Signal(object)    # (ButtonConfig)
-    stop_requested = Signal(object)        # (ButtonConfig)
-    edit_requested = Signal(object)        # (ButtonConfig)
+    launch_requested = Signal(object)
+    terminal_requested = Signal(object)
+    stop_requested = Signal(object)
+    edit_requested = Signal(object)
     add_button_requested = Signal()
 
     def __init__(self, parent: Optional[QWidget] = None):
@@ -44,13 +45,13 @@ class ShelfView(QWidget):
         main_layout.setContentsMargins(12, 6, 12, 12)
         main_layout.setSpacing(10)
 
-        # Card container with Apple frosted style
+        # Card container: Tesla Smoked Glass Card
         self.card = QFrame(self)
         self.card.setObjectName("Card")
         self.card.setStyleSheet(f"""
             QFrame#Card {{
-                background-color: {FROSTED_CARD};
-                border: 1px solid {FROSTED_BORDER};
+                background-color: {TESLA_CARD};
+                border: 1px solid {TESLA_BORDER};
                 border-radius: {RADIUS_CARD}px;
             }}
         """)
@@ -72,43 +73,43 @@ class ShelfView(QWidget):
 
         # Empty State label
         self.empty_label = QLabel(
-            "No launch buttons yet. Add one for each program you start before a flight, "
-            "on this computer or on a companion computer.",
+            "NO LAUNCH PROFILES CONFIGURED. ADD A PROFILE TO CONTROL ON-BOARD OR REMOTE PROGRAMS.",
             self.card,
         )
         self.empty_label.setWordWrap(True)
-        self.empty_label.setStyleSheet(f"font-size: 13px; color: {SLATE_MUTED}; padding: 14px 4px;")
+        self.empty_label.setStyleSheet(f"font-size: 11.5px; font-weight: 600; color: {TEXT_MUTED}; letter-spacing: 0.8px; padding: 18px 4px;")
         card_layout.addWidget(self.empty_label)
 
         # Missing Connections note
         self.note_label = QLabel("", self.card)
         self.note_label.setWordWrap(True)
-        self.note_label.setStyleSheet(f"font-size: 11.5px; color: {SLATE_MUTED}; padding: 4px 0;")
+        self.note_label.setStyleSheet(f"font-size: 11.5px; color: {TEXT_MUTED}; padding: 4px 0;")
         self.note_label.hide()
         card_layout.addWidget(self.note_label)
 
-        # Add Button action bar
+        # Add Button action bar (Tesla High-Tech Action)
         add_bar = QWidget(self.card)
         ab_layout = QHBoxLayout(add_bar)
         ab_layout.setContentsMargins(0, 4, 0, 0)
         ab_layout.setSpacing(8)
 
-        self.add_btn = QPushButton("Add button", add_bar)
+        self.add_btn = QPushButton("ADD BUTTON", add_bar)
         self.add_btn.setCursor(Qt.PointingHandCursor)
-        self.add_btn.setIcon(get_icon("plus", SLATE_TITLE, 14))
+        self.add_btn.setIcon(get_icon("plus", ACCENT_CYAN, 14))
         self.add_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: #ffffff;
-                color: {SLATE_TITLE};
-                border: 1px solid rgba(0, 0, 0, 0.08);
+                background-color: rgba(255, 255, 255, 0.06);
+                color: {TEXT_TITLE};
+                border: 1px solid rgba(255, 255, 255, 0.12);
                 border-radius: {RADIUS_BTN}px;
-                padding: 7px 16px;
-                font-weight: 600;
-                font-size: 12.5px;
+                padding: 8px 18px;
+                font-weight: 700;
+                font-size: 11.5px;
+                letter-spacing: 0.8px;
             }}
             QPushButton:hover {{
-                background-color: rgba(255, 255, 255, 0.95);
-                border-color: rgba(0, 0, 0, 0.15);
+                background-color: rgba(255, 255, 255, 0.12);
+                border-color: {ACCENT_CYAN};
             }}
             QPushButton:disabled {{
                 opacity: 0.4;
@@ -119,19 +120,19 @@ class ShelfView(QWidget):
         ab_layout.addStretch()
         card_layout.addWidget(add_bar)
 
-        # Detached output log area
+        # Detached output log area (Cyber console)
         self.output_area = QTextEdit(self.card)
         self.output_area.setReadOnly(True)
         self.output_area.setMaximumHeight(140)
         self.output_area.setStyleSheet(f"""
             QTextEdit {{
-                background-color: {FROSTED_INPUT};
-                border: 1px solid rgba(0, 0, 0, 0.08);
+                background-color: {TESLA_INPUT};
+                border: 1px solid rgba(255, 255, 255, 0.08);
                 border-radius: {RADIUS_BTN}px;
                 padding: 8px;
                 font-family: "SF Mono", Menlo, Monaco, monospace;
                 font-size: 11.5px;
-                color: {SLATE_TEXT};
+                color: {TEXT_BODY};
             }}
         """)
         self.output_area.hide()
@@ -186,8 +187,8 @@ class ShelfView(QWidget):
         if missing:
             names = ", ".join(f'"{n}"' for n in missing)
             self.note_label.setText(
-                f"Not set up on this computer yet: {names}. "
-                "Press a button that uses one to enter its address and login once."
+                f"UNRESOLVED SSH CONNECTIONS: {names}. "
+                "LAUNCH WILL PROMPT FOR ADDRESS AND CREDENTIALS."
             )
             self.note_label.show()
         else:

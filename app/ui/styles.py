@@ -1,56 +1,77 @@
-"""Theme definitions and Apple Frosted Glass design system."""
+"""Tesla-inspired Dark Smoked Frosted Glass design system."""
 
-# Apple Frosted Glass Color System
-ACCENT_ORANGE = "#ea580c"
-ACCENT_ORANGE_HOVER = "#f97316"
-ACCENT_ORANGE_ACTIVE = "#c2410c"
+# Tesla Cyber / Automotive Minimalist Palette
+TESLA_BG = "rgba(9, 10, 14, 0.95)"
+TESLA_CARD = "rgba(18, 21, 28, 0.75)"
+TESLA_CARD_HOVER = "rgba(28, 33, 44, 0.85)"
+TESLA_CARD_ACTIVE = "rgba(36, 42, 56, 0.95)"
+TESLA_INPUT = "rgba(14, 16, 22, 0.85)"
+TESLA_MODAL = "rgba(14, 17, 23, 0.96)"
+TESLA_OVERLAY = "rgba(4, 5, 8, 0.65)"
 
-HEALTHY = "#10b981"         # Emerald Green for CONNECTED & Online
-HEALTHY_LIGHT = "rgba(16, 185, 129, 0.12)"
-WARNING = "#f59e0b"         # Amber
-CRITICAL = "#ef4444"        # Red
+# Hairlines and Borders
+TESLA_BORDER = "rgba(255, 255, 255, 0.09)"
+TESLA_BORDER_HOVER = "rgba(255, 255, 255, 0.20)"
+TESLA_BORDER_ACTIVE = "rgba(56, 189, 248, 0.50)"
+HAIRLINE = "rgba(255, 255, 255, 0.07)"
 
-SLATE_TITLE = "#0f172a"     # Main dark headers & terminal text
-SLATE_TEXT = "#1e293b"      # Body text
-SLATE_MUTED = "#64748b"     # Subtitle & hints
-SLATE_FAINT = "#94a3b8"     # Tertiary & icons
-SLATE_BORDER = "#cbd5e1"    # Slider inactive track
+# Typography Colors
+TEXT_TITLE = "#f8fafc"       # Crisp Pure White
+TEXT_BODY = "#e2e8f0"        # High Contrast Silver
+TEXT_MUTED = "#94a3b8"       # Telemetry Gray
+TEXT_FAINT = "#64748b"       # Subtle Muted
 
-# Frosted Glass Translucencies
-FROSTED_BG = "rgba(232, 236, 238, 0.90)"
-FROSTED_MODAL = "rgba(226, 231, 234, 0.95)"
-FROSTED_OVERLAY = "rgba(15, 23, 42, 0.35)"
-FROSTED_CARD = "rgba(255, 255, 255, 0.65)"
-FROSTED_CARD_HOVER = "rgba(255, 255, 255, 0.88)"
-FROSTED_INPUT = "rgba(255, 255, 255, 0.92)"
-FROSTED_BORDER = "rgba(255, 255, 255, 0.70)"
-HAIRLINE = "rgba(0, 0, 0, 0.08)"
+# Accents (Tesla Cyber Blue & Status Glows)
+ACCENT_CYAN = "#38bdf8"      # Electric Blue / Cyan
+ACCENT_CYAN_HOVER = "#0284c7"
+ACCENT_CYAN_GLOW = "rgba(56, 189, 248, 0.15)"
 
-RADIUS_MODAL = 20
-RADIUS_CARD = 14
-RADIUS_BTN = 10
+TESLA_RED = "#e82127"        # Tesla Red for Stop & Critical
+HEALTHY = "#10b981"          # Emerald Neon for Connected / Online
+WARNING = "#f59e0b"          # Amber
+CRITICAL = "#e82127"
+
+# Radii: Precision-engineered, sleek geometric curves
+RADIUS_MODAL = 16
+RADIUS_CARD = 12
+RADIUS_BTN = 8
+RADIUS_PILL = 20
 
 # Compatibility Aliases
-ACCENT = ACCENT_ORANGE
-BORDER_SOFT = "rgba(0, 0, 0, 0.08)"
-PANEL_FILL = "rgba(255, 255, 255, 0.7)"
-SURFACE_BG = FROSTED_BG
-SURFACE_CARD = FROSTED_CARD
-SURFACE_HOVER = FROSTED_CARD_HOVER
-SURFACE_ACTIVE = "rgba(255, 255, 255, 0.95)"
-TEXT_1 = SLATE_TITLE
-TEXT_2 = SLATE_TEXT
-TEXT_3 = SLATE_MUTED
+ACCENT = ACCENT_CYAN
+BORDER_SOFT = TESLA_BORDER
+PANEL_FILL = TESLA_INPUT
+SURFACE_BG = TESLA_BG
+SURFACE_CARD = TESLA_CARD
+SURFACE_HOVER = TESLA_CARD_HOVER
+SURFACE_ACTIVE = TESLA_CARD_ACTIVE
+TEXT_1 = TEXT_TITLE
+TEXT_2 = TEXT_BODY
+TEXT_3 = TEXT_MUTED
+
+FROSTED_BG = TESLA_BG
+FROSTED_CARD = TESLA_CARD
+FROSTED_CARD_HOVER = TESLA_CARD_HOVER
+FROSTED_INPUT = TESLA_INPUT
+FROSTED_MODAL = TESLA_MODAL
+FROSTED_OVERLAY = TESLA_OVERLAY
+FROSTED_BORDER = TESLA_BORDER
+SLATE_TITLE = TEXT_TITLE
+SLATE_TEXT = TEXT_BODY
+SLATE_MUTED = TEXT_MUTED
+SLATE_FAINT = TEXT_FAINT
+SLATE_BORDER = "rgba(255, 255, 255, 0.18)"
+ACCENT_ORANGE = ACCENT_CYAN
 
 MAIN_STYLESHEET = f"""
 QMainWindow {{
-    background-color: {FROSTED_BG};
-    color: {SLATE_TEXT};
+    background-color: {TESLA_BG};
+    color: {TEXT_BODY};
 }}
 
 QWidget {{
-    color: {SLATE_TEXT};
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    color: {TEXT_BODY};
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
 }}
 
@@ -61,107 +82,109 @@ QScrollArea {{
 
 QScrollBar:vertical {{
     background: transparent;
-    width: 6px;
+    width: 5px;
     margin: 0px;
 }}
 
 QScrollBar::handle:vertical {{
-    background: rgba(100, 116, 139, 0.35);
+    background: rgba(255, 255, 255, 0.18);
     min-height: 24px;
-    border-radius: 3px;
+    border-radius: 2.5px;
 }}
 
 QScrollBar::handle:vertical:hover {{
-    background: rgba(100, 116, 139, 0.6);
+    background: rgba(56, 189, 248, 0.5);
 }}
 
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
     height: 0px;
 }}
 
-/* Frosted Cards */
+/* Cards: Smoked Obsidian Glass */
 QFrame#Card {{
-    background-color: {FROSTED_CARD};
-    border: 1px solid {FROSTED_BORDER};
+    background-color: {TESLA_CARD};
+    border: 1px solid {TESLA_BORDER};
     border-radius: {RADIUS_CARD}px;
 }}
 
-/* Primary Buttons (Apple Orange) */
+/* Primary Buttons: High-Tech Electric Blue */
 QPushButton.PrimaryBtn {{
-    background-color: {ACCENT_ORANGE};
-    color: #ffffff;
+    background-color: {ACCENT_CYAN};
+    color: #0b0f17;
     border: none;
     border-radius: {RADIUS_BTN}px;
     padding: 8px 18px;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.3px;
+}}
+QPushButton.PrimaryBtn:hover {{
+    background-color: #7dd3fc;
+}}
+QPushButton.PrimaryBtn:pressed {{
+    background-color: {ACCENT_CYAN_HOVER};
+}}
+QPushButton.PrimaryBtn:disabled {{
+    background-color: rgba(255, 255, 255, 0.06);
+    color: {TEXT_FAINT};
+}}
+
+/* Secondary / Frosted Pill Buttons */
+QPushButton.PillBtn {{
+    background-color: rgba(255, 255, 255, 0.06);
+    color: {TEXT_TITLE};
+    border: 1px solid {TESLA_BORDER};
+    border-radius: {RADIUS_BTN}px;
+    padding: 8px 16px;
     font-weight: 600;
     font-size: 13px;
 }}
-QPushButton.PrimaryBtn:hover {{
-    background-color: {ACCENT_ORANGE_HOVER};
-}}
-QPushButton.PrimaryBtn:pressed {{
-    background-color: {ACCENT_ORANGE_ACTIVE};
-}}
-QPushButton.PrimaryBtn:disabled {{
-    background-color: rgba(203, 213, 225, 0.6);
-    color: {SLATE_FAINT};
-}}
-
-/* Secondary / Pill Buttons */
-QPushButton.PillBtn {{
-    background-color: #ffffff;
-    color: {SLATE_TEXT};
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: {RADIUS_BTN}px;
-    padding: 8px 16px;
-    font-weight: 500;
-    font-size: 13px;
-}}
 QPushButton.PillBtn:hover {{
-    background-color: {FROSTED_CARD_HOVER};
-    border-color: rgba(0, 0, 0, 0.15);
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: {TESLA_BORDER_HOVER};
 }}
 
-/* Danger Buttons */
+/* Danger Buttons (Tesla Red) */
 QPushButton.DangerBtn {{
-    background-color: transparent;
-    color: {CRITICAL};
-    border: 1px solid {CRITICAL};
+    background-color: rgba(232, 33, 39, 0.12);
+    color: {TESLA_RED};
+    border: 1px solid rgba(232, 33, 39, 0.4);
     border-radius: {RADIUS_BTN}px;
     padding: 8px 16px;
     font-weight: 600;
 }}
 QPushButton.DangerBtn:hover {{
-    background-color: {CRITICAL};
+    background-color: {TESLA_RED};
     color: #ffffff;
 }}
 
 /* Ghost Buttons */
 QPushButton.GhostBtn {{
     background-color: transparent;
-    color: {SLATE_MUTED};
+    color: {TEXT_MUTED};
     border: none;
     border-radius: {RADIUS_BTN}px;
     padding: 8px 14px;
 }}
 QPushButton.GhostBtn:hover {{
-    color: {SLATE_TITLE};
-    background-color: rgba(0, 0, 0, 0.04);
+    color: {TEXT_TITLE};
+    background-color: rgba(255, 255, 255, 0.05);
 }}
 
-/* Inputs and Forms */
+/* Inputs & Form Fields: Precision Smoked Inputs */
 QLineEdit, QComboBox {{
-    background-color: {FROSTED_INPUT};
-    color: {SLATE_TEXT};
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background-color: {TESLA_INPUT};
+    color: {TEXT_TITLE};
+    border: 1px solid {TESLA_BORDER};
     border-radius: {RADIUS_BTN}px;
     padding: 8px 12px;
     font-size: 13px;
-    selection-background-color: {ACCENT_ORANGE};
-    selection-color: #ffffff;
+    selection-background-color: {ACCENT_CYAN};
+    selection-color: #000000;
 }}
 QLineEdit:focus, QComboBox:focus {{
-    border-color: {ACCENT_ORANGE};
+    border-color: {ACCENT_CYAN};
+    background-color: rgba(18, 22, 30, 0.95);
 }}
 QLineEdit[mono="true"] {{
     font-family: "SF Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
@@ -173,23 +196,23 @@ QComboBox::drop-down {{
     width: 24px;
 }}
 QComboBox QAbstractItemView {{
-    background-color: #ffffff;
-    color: {SLATE_TEXT};
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: #12151c;
+    color: {TEXT_TITLE};
+    border: 1px solid {TESLA_BORDER};
     border-radius: 8px;
-    selection-background-color: rgba(234, 88, 12, 0.1);
-    selection-color: {ACCENT_ORANGE};
+    selection-background-color: rgba(56, 189, 248, 0.18);
+    selection-color: {ACCENT_CYAN};
 }}
 
-/* Form Section Labels */
+/* Telemetry Section Header Labels */
 QLabel.FormSectionLabel {{
-    font-size: 11px;
-    font-weight: 700;
-    color: {SLATE_MUTED};
-    letter-spacing: 0.6px;
+    font-size: 10.5px;
+    font-weight: 800;
+    color: {TEXT_MUTED};
+    letter-spacing: 1.2px;
 }}
 
-/* Hairline Separator */
+/* Hairline Separators */
 QFrame#Hairline {{
     background-color: {HAIRLINE};
     max-height: 1px;

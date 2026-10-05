@@ -37,10 +37,10 @@ from app.ui.views.editor_view import EditorView
 from app.ui.dialogs.terminal_window import TerminalWindow
 from app.ui.styles import (
     MAIN_STYLESHEET,
-    FROSTED_BG,
-    FROSTED_BORDER,
-    SLATE_TITLE,
-    SLATE_MUTED,
+    TESLA_CARD,
+    TESLA_BORDER,
+    TEXT_TITLE,
+    TEXT_MUTED,
     HEALTHY,
     CRITICAL,
 )
@@ -62,17 +62,17 @@ class MainWindow(QMainWindow):
         # Root Central Widget
         self.root_widget = QWidget(self)
         self.root_layout = QVBoxLayout(self.root_widget)
-        self.root_layout.setContentsMargins(14, 14, 14, 14)
+        self.root_layout.setContentsMargins(12, 12, 12, 12)
         self.root_layout.setSpacing(8)
 
-        # Main Frosted Card Container
+        # Main Frosted Glass Card Container
         self.main_container = QFrame(self.root_widget)
         self.main_container.setObjectName("MainContainer")
         self.main_container.setStyleSheet(f"""
             QFrame#MainContainer {{
-                background-color: {FROSTED_BG};
-                border: 1px solid {FROSTED_BORDER};
-                border-radius: 18px;
+                background-color: {TESLA_CARD};
+                border: 1px solid {TESLA_BORDER};
+                border-radius: 14px;
             }}
         """)
 
@@ -88,7 +88,7 @@ class MainWindow(QMainWindow):
 
         # 2. Status message strip
         self.status_label = QLabel("Ready", self.main_container)
-        self.status_label.setStyleSheet(f"font-size: 11.5px; color: {SLATE_MUTED}; padding: 0 4px;")
+        self.status_label.setStyleSheet(f"font-size: 11px; color: {TEXT_MUTED}; padding: 0 4px; font-weight: 500;")
         container_layout.addWidget(self.status_label)
 
         # 3. View Stack (ShelfView & EditorView)
@@ -146,8 +146,8 @@ class MainWindow(QMainWindow):
 
     def _set_status(self, text: str, kind: str = "info"):
         self.status_label.setText(text)
-        color = HEALTHY if kind == "ok" else (CRITICAL if kind == "err" else SLATE_MUTED)
-        self.status_label.setStyleSheet(f"font-size: 11.5px; color: {color}; padding: 0 4px;")
+        color = HEALTHY if kind == "ok" else (CRITICAL if kind == "err" else TEXT_MUTED)
+        self.status_label.setStyleSheet(f"font-size: 11px; color: {color}; padding: 0 4px; font-weight: 500;")
 
     # ---- Companion In-App Modal (Image 2) ------------------------------------
 

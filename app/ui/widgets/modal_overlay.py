@@ -35,9 +35,9 @@ class ModalOverlay(QWidget):
 
         # Soft drop shadow for floating modal effect
         shadow = QGraphicsDropShadowEffect(widget)
-        shadow.setBlurRadius(36)
-        shadow.setColor(QColor(0, 0, 0, 80))
-        shadow.setOffset(0, 10)
+        shadow.setBlurRadius(40)
+        shadow.setColor(QColor(0, 0, 0, 160))
+        shadow.setOffset(0, 12)
         widget.setGraphicsEffect(shadow)
 
         self.layout.addWidget(widget)
@@ -68,7 +68,7 @@ class ModalOverlay(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor(15, 23, 42, 85))  # Smooth frosted backdrop tint
+        painter.fillRect(self.rect(), QColor(4, 6, 10, 180))  # Tesla dark smoked frosted backdrop
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

@@ -1,4 +1,4 @@
-"""Button configuration editor view with Apple frosted design."""
+"""Button configuration editor view with Tesla design."""
 
 from typing import Optional, List
 from PySide6.QtWidgets import (
@@ -29,22 +29,24 @@ from app.ui.widgets.segmented_control import SegmentedControl
 from app.ui.widgets.toggle_switch import ToggleSwitch
 from app.ui.icons import get_icon
 from app.ui.styles import (
-    FROSTED_CARD,
-    FROSTED_BORDER,
-    FROSTED_INPUT,
-    SLATE_TITLE,
-    SLATE_TEXT,
-    SLATE_MUTED,
-    ACCENT_ORANGE,
+    TESLA_CARD,
+    TESLA_BORDER,
+    TESLA_INPUT,
+    TEXT_TITLE,
+    TEXT_BODY,
+    TEXT_MUTED,
+    TEXT_FAINT,
+    ACCENT_CYAN,
     CRITICAL,
+    TESLA_RED,
     RADIUS_BTN,
     RADIUS_CARD,
 )
 
 
 class EditorView(QWidget):
-    saved = Signal(object, object)  # (ButtonConfig, Optional[SshConnection])
-    deleted = Signal(str)           # (button_id)
+    saved = Signal(object, object)
+    deleted = Signal(str)
     cancelled = Signal()
 
     def __init__(
@@ -65,8 +67,8 @@ class EditorView(QWidget):
         self.card.setObjectName("Card")
         self.card.setStyleSheet(f"""
             QFrame#Card {{
-                background-color: {FROSTED_CARD};
-                border: 1px solid {FROSTED_BORDER};
+                background-color: {TESLA_CARD};
+                border: 1px solid {TESLA_BORDER};
                 border-radius: {RADIUS_CARD}px;
             }}
         """)
@@ -79,8 +81,8 @@ class EditorView(QWidget):
         lb_layout = QVBoxLayout(lbl_box)
         lb_layout.setContentsMargins(0, 0, 0, 0)
         lb_layout.setSpacing(4)
-        lb_title = QLabel("Button", lbl_box)
-        lb_title.setStyleSheet(f"font-weight: 700; font-size: 12.5px; color: {SLATE_TITLE};")
+        lb_title = QLabel("PROFILE NAME", lbl_box)
+        lb_title.setStyleSheet(f"font-weight: 800; font-size: 10.5px; color: {TEXT_MUTED}; letter-spacing: 1px;")
         lb_layout.addWidget(lb_title)
 
         self.label_input = QLineEdit(lbl_box)
@@ -88,8 +90,8 @@ class EditorView(QWidget):
         self.label_input.textChanged.connect(self._update_preview)
         lb_layout.addWidget(self.label_input)
 
-        lb_hint = QLabel("What the button says. Leave empty to use the command itself.", lbl_box)
-        lb_hint.setStyleSheet(f"font-size: 11px; color: {SLATE_MUTED};")
+        lb_hint = QLabel("Display name on launch shelf. Defaults to command if empty.", lbl_box)
+        lb_hint.setStyleSheet(f"font-size: 11px; color: {TEXT_FAINT};")
         lb_layout.addWidget(lb_hint)
         card_layout.addWidget(lbl_box)
 
@@ -98,8 +100,8 @@ class EditorView(QWidget):
         tb_layout = QVBoxLayout(target_box)
         tb_layout.setContentsMargins(0, 0, 0, 0)
         tb_layout.setSpacing(4)
-        tb_title = QLabel("Runs on", target_box)
-        tb_title.setStyleSheet(f"font-weight: 700; font-size: 12.5px; color: {SLATE_TITLE};")
+        tb_title = QLabel("EXECUTION TARGET", target_box)
+        tb_title.setStyleSheet(f"font-weight: 800; font-size: 10.5px; color: {TEXT_MUTED}; letter-spacing: 1px;")
         tb_layout.addWidget(tb_title)
 
         self.target_seg = SegmentedControl(TARGETS, TARGET_LOCAL, target_box)
@@ -117,8 +119,8 @@ class EditorView(QWidget):
         cb_layout = QVBoxLayout(conn_box)
         cb_layout.setContentsMargins(0, 0, 0, 0)
         cb_layout.setSpacing(4)
-        cb_title = QLabel("Connection", conn_box)
-        cb_title.setStyleSheet(f"font-weight: 700; font-size: 12.5px; color: {SLATE_TITLE};")
+        cb_title = QLabel("SSH CONNECTION", conn_box)
+        cb_title.setStyleSheet(f"font-weight: 800; font-size: 10.5px; color: {TEXT_MUTED}; letter-spacing: 1px;")
         cb_layout.addWidget(cb_title)
 
         self.conn_combo = QComboBox(conn_box)
@@ -131,9 +133,9 @@ class EditorView(QWidget):
         self.new_conn_box = QFrame(self.ssh_container)
         self.new_conn_box.setStyleSheet(f"""
             QFrame {{
-                background-color: rgba(255, 255, 255, 0.7);
-                border: 1px solid rgba(0, 0, 0, 0.08);
-                border-radius: 12px;
+                background-color: {TESLA_INPUT};
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 10px;
                 padding: 10px;
             }}
         """)
@@ -186,8 +188,8 @@ class EditorView(QWidget):
         fb_layout = QVBoxLayout(folder_box)
         fb_layout.setContentsMargins(0, 0, 0, 0)
         fb_layout.setSpacing(4)
-        fb_title = QLabel("Folder", folder_box)
-        fb_title.setStyleSheet(f"font-weight: 700; font-size: 12.5px; color: {SLATE_TITLE};")
+        fb_title = QLabel("WORKING DIRECTORY", folder_box)
+        fb_title.setStyleSheet(f"font-weight: 800; font-size: 10.5px; color: {TEXT_MUTED}; letter-spacing: 1px;")
         fb_layout.addWidget(fb_title)
 
         self.dir_input = QLineEdit(folder_box)
@@ -195,8 +197,8 @@ class EditorView(QWidget):
         self.dir_input.textChanged.connect(self._update_preview)
         fb_layout.addWidget(self.dir_input)
 
-        self.dir_hint = QLabel("Entered before the program starts. Leave empty for home folder.", folder_box)
-        self.dir_hint.setStyleSheet(f"font-size: 11px; color: {SLATE_MUTED};")
+        self.dir_hint = QLabel("Working directory for execution. Leave blank for home directory.", folder_box)
+        self.dir_hint.setStyleSheet(f"font-size: 11px; color: {TEXT_FAINT};")
         fb_layout.addWidget(self.dir_hint)
         card_layout.addWidget(folder_box)
 
@@ -205,8 +207,8 @@ class EditorView(QWidget):
         cb2_layout = QVBoxLayout(cmd_box)
         cb2_layout.setContentsMargins(0, 0, 0, 0)
         cb2_layout.setSpacing(4)
-        cb2_title = QLabel("Program", cmd_box)
-        cb2_title.setStyleSheet(f"font-weight: 700; font-size: 12.5px; color: {SLATE_TITLE};")
+        cb2_title = QLabel("COMMAND STRING", cmd_box)
+        cb2_title.setStyleSheet(f"font-weight: 800; font-size: 10.5px; color: {TEXT_MUTED}; letter-spacing: 1px;")
         cb2_layout.addWidget(cb2_title)
 
         self.cmd_input = QLineEdit(cmd_box)
@@ -226,8 +228,8 @@ class EditorView(QWidget):
         term_row = QWidget(switches_box)
         tr_layout = QHBoxLayout(term_row)
         tr_layout.setContentsMargins(0, 0, 0, 0)
-        tr_lbl = QLabel("Run in a terminal", term_row)
-        tr_lbl.setStyleSheet(f"font-weight: 600; font-size: 12.5px; color: {SLATE_TITLE};")
+        tr_lbl = QLabel("Run in an interactive terminal", term_row)
+        tr_lbl.setStyleSheet(f"font-weight: 600; font-size: 12.5px; color: {TEXT_BODY};")
         tr_layout.addWidget(tr_lbl)
         tr_layout.addStretch()
         self.terminal_switch = ToggleSwitch(True, term_row)
@@ -239,8 +241,8 @@ class EditorView(QWidget):
         self.restart_row = QWidget(switches_box)
         rr_layout = QHBoxLayout(self.restart_row)
         rr_layout.setContentsMargins(0, 0, 0, 0)
-        rr_lbl = QLabel("Restart on press", self.restart_row)
-        rr_lbl.setStyleSheet(f"font-weight: 600; font-size: 12.5px; color: {SLATE_TITLE};")
+        rr_lbl = QLabel("Restart on press (Send Ctrl-C + Rerun)", self.restart_row)
+        rr_lbl.setStyleSheet(f"font-weight: 600; font-size: 12.5px; color: {TEXT_BODY};")
         rr_layout.addWidget(rr_lbl)
         rr_layout.addStretch()
         self.restart_switch = ToggleSwitch(False, self.restart_row)
@@ -253,17 +255,17 @@ class EditorView(QWidget):
         self.preview_box = QFrame(self.card)
         self.preview_box.setStyleSheet(f"""
             QFrame {{
-                background-color: {FROSTED_INPUT};
-                border: 1px solid rgba(0, 0, 0, 0.08);
+                background-color: {TESLA_INPUT};
+                border: 1px solid rgba(255, 255, 255, 0.08);
                 border-radius: {RADIUS_BTN}px;
                 padding: 10px;
             }}
         """)
         pb_layout = QVBoxLayout(self.preview_box)
         pb_layout.setContentsMargins(6, 6, 6, 6)
-        self.preview_text = QLabel("Name a program to see the command.", self.preview_box)
+        self.preview_text = QLabel("Enter command to inspect preview.", self.preview_box)
         self.preview_text.setWordWrap(True)
-        self.preview_text.setStyleSheet(f'font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 12px; color: {SLATE_TEXT};')
+        self.preview_text.setStyleSheet(f'font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 12px; color: {ACCENT_CYAN};')
         pb_layout.addWidget(self.preview_text)
         card_layout.addWidget(self.preview_box)
 
@@ -272,63 +274,69 @@ class EditorView(QWidget):
         self.error_label.setStyleSheet(f"color: {CRITICAL}; font-size: 11px;")
         card_layout.addWidget(self.error_label)
 
-        # 8. Action Buttons (Save, Delete, Cancel)
+        # 8. Action Buttons (Tesla Cyber Styling)
         actions_bar = QWidget(self.card)
         ab_layout = QHBoxLayout(actions_bar)
         ab_layout.setContentsMargins(0, 8, 0, 0)
         ab_layout.setSpacing(10)
 
-        self.save_btn = QPushButton("Save", actions_bar)
+        # Save Button (Tesla Cyan)
+        self.save_btn = QPushButton("SAVE PROFILE", actions_bar)
         self.save_btn.setCursor(Qt.PointingHandCursor)
-        self.save_btn.setIcon(get_icon("check", "#ffffff", 14))
+        self.save_btn.setIcon(get_icon("check", "#080c14", 14))
         self.save_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {ACCENT_ORANGE};
-                color: #ffffff;
+                background-color: {ACCENT_CYAN};
+                color: #080c14;
                 border: none;
                 border-radius: {RADIUS_BTN}px;
                 padding: 10px 22px;
-                font-weight: 700;
-                font-size: 13px;
+                font-weight: 800;
+                font-size: 12px;
+                letter-spacing: 0.8px;
             }}
-            QPushButton:hover {{ background-color: #f97316; }}
-            QPushButton:disabled {{ background-color: rgba(203, 213, 225, 0.6); color: {SLATE_MUTED}; }}
+            QPushButton:hover {{ background-color: #7dd3fc; }}
+            QPushButton:disabled {{ background-color: rgba(255, 255, 255, 0.08); color: {TEXT_FAINT}; }}
         """)
         self.save_btn.clicked.connect(self._handle_save)
         ab_layout.addWidget(self.save_btn)
 
-        self.delete_btn = QPushButton("Delete", actions_bar)
+        # Delete Button (Tesla Red outline)
+        self.delete_btn = QPushButton("DELETE", actions_bar)
         self.delete_btn.setCursor(Qt.PointingHandCursor)
-        self.delete_btn.setIcon(get_icon("trash-2", CRITICAL, 14))
+        self.delete_btn.setIcon(get_icon("trash-2", TESLA_RED, 14))
         self.delete_btn.setStyleSheet(f"""
             QPushButton {{
-                background: transparent;
-                color: {CRITICAL};
-                border: 1px solid {CRITICAL};
+                background: rgba(232, 33, 39, 0.12);
+                color: {TESLA_RED};
+                border: 1px solid rgba(232, 33, 39, 0.35);
                 border-radius: {RADIUS_BTN}px;
-                padding: 9px 16px;
-                font-weight: 600;
-                font-size: 13px;
+                padding: 9px 18px;
+                font-weight: 700;
+                font-size: 12px;
+                letter-spacing: 0.8px;
             }}
-            QPushButton:hover {{ background-color: {CRITICAL}; color: #ffffff; }}
+            QPushButton:hover {{ background-color: {TESLA_RED}; color: #ffffff; }}
         """)
         self.delete_btn.clicked.connect(self._handle_delete)
         ab_layout.addWidget(self.delete_btn)
 
         ab_layout.addStretch()
 
-        self.cancel_btn = QPushButton("Cancel", actions_bar)
+        # Cancel Button (Ghost text)
+        self.cancel_btn = QPushButton("CANCEL", actions_bar)
         self.cancel_btn.setCursor(Qt.PointingHandCursor)
         self.cancel_btn.setStyleSheet(f"""
             QPushButton {{
                 background: transparent;
-                color: {SLATE_MUTED};
+                color: {TEXT_MUTED};
                 border: none;
                 padding: 10px 14px;
-                font-weight: 600;
-                font-size: 13px;
+                font-weight: 700;
+                font-size: 12px;
+                letter-spacing: 0.8px;
             }}
-            QPushButton:hover {{ color: {SLATE_TITLE}; }}
+            QPushButton:hover {{ color: {TEXT_TITLE}; }}
         """)
         self.cancel_btn.clicked.connect(self.cancelled.emit)
         ab_layout.addWidget(self.cancel_btn)
@@ -412,7 +420,7 @@ class EditorView(QWidget):
         )
 
         preview = preview_line(dummy_btn)
-        self.preview_text.setText(preview or "Name a program to see the command.")
+        self.preview_text.setText(preview or "Enter command to inspect preview.")
 
         # Validation
         err = ""
