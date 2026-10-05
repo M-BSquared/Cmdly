@@ -38,7 +38,6 @@ from app.ui.widgets.modal_overlay import ModalOverlay
 from app.ui.views.shelf_view import ShelfView
 from app.ui.views.editor_view import EditorView
 from app.ui.dialogs.terminal_window import TerminalWindow
-from app.ui.mac_blur import apply_mac_vibrancy
 from app.ui.icons import get_icon
 from app.ui.styles import (
     theme_manager,
@@ -198,13 +197,8 @@ class MainWindow(QMainWindow):
 
     def _on_theme_changed(self, theme_id: str):
         self.setStyleSheet(theme_manager.get_stylesheet())
-        apply_mac_vibrancy(int(self.winId()), dark=theme_manager.current_theme.get("mac_dark", True))
         self._apply_theme()
         self._refresh_shelf()
-
-    def showEvent(self, event):
-        super().showEvent(event)
-        apply_mac_vibrancy(int(self.winId()), dark=theme_manager.current_theme.get("mac_dark", True))
 
     def _refresh_shelf(self):
         buttons = self.config_manager.get_buttons()

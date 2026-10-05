@@ -95,7 +95,7 @@ Das Projekt verfügt über eine vollständige Test-Suite:
   * 🛸 **Corvus Flight Deck (Charcoal):** Klassisches Schwalby Titanium-Design mit Aviation Amber (`#f59e0b`).
   * 🍏 **Apple Smoked Glass:** macOS Sonoma/Sequoia Smoked Glass mit Apple Blue (`#0a84ff`).
   * ☀️ **Light Frosted (Clear Day):** Helles, transparentes Frosted Glass mit Slate Blue (`#0071e3`).
-* **Hardware-beschleunigtes macOS Frosted Glass (`mac_blur.py`):** Nutzt native Cocoa `NSVisualEffectView` hinter dem transluzenten Fenster für echten Blur von Hintergrundfenstern und Wallpaper.
+* **Transluzentes Styling:** Nutzt `Qt.WA_TranslucentBackground` mit transluzenten Smoked-Glass-Oberflächen.
 * **Persistenz:** Das gewählte Theme wird automatisch in `~/.cmdly/config.json` gesichert.
 
 ---
@@ -154,7 +154,6 @@ Cmdly/
 │   └── ui/
 │       ├── icons.py           # Vektor-SVG-Icons (CPU, Settings, Server, Play, Stop, etc.)
 │       ├── styles.py          # Multi-Theme-Engine & SF Pro Typografie-System
-│       ├── mac_blur.py        # Native macOS Cocoa NSVisualEffectView Vibrancy
 │       ├── widgets/
 │       │   ├── companion_bar.py    # Companion-Telemetrie-Status-Strip
 │       │   ├── companion_modal.py  # In-App Begleitcomputer-Modal

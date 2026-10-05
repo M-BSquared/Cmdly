@@ -3,7 +3,7 @@
 from typing import Dict, Any
 from PySide6.QtCore import QObject, Signal
 
-FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
+FONT_FAMILY = '.AppleSystemUIFont, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif'
 MONO_FONT = '"SF Mono", Menlo, Monaco, Consolas, "Courier New", monospace'
 
 THEMES: Dict[str, Dict[str, Any]] = {
