@@ -1,8 +1,7 @@
-"""Main application window coordinating all Cmdly views and services."""
+"""Main application window with Apple frosted glass design and in-app modals."""
 
 import os
 import subprocess
-import time
 from typing import Dict, Optional
 from PySide6.QtWidgets import (
     QMainWindow,
@@ -10,9 +9,11 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QStackedWidget,
     QLabel,
-    QMessageBox,
+    QFrame,
+    QGraphicsDropShadowEffect,
 )
 from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QColor
 
 from app.config import ConfigManager
 from app.models import (
@@ -20,29 +21,28 @@ from app.models import (
     CompanionConfig,
     SshConnection,
     TARGET_LOCAL,
-    TARGET_SSH,
-    MODE_TERMINAL,
     MODE_BACKGROUND,
     session_name,
     companion_session_name,
     terminal_line,
-    COMPANION_ID,
 )
 from app.network.ping_service import PingService
 from app.network.ssh_manager import SshManager
 from app.sessions.session_manager import SessionManager
 from app.ui.widgets.companion_bar import CompanionBar
+from app.ui.widgets.companion_modal import CompanionModalWidget
+from app.ui.widgets.modal_overlay import ModalOverlay
 from app.ui.views.shelf_view import ShelfView
 from app.ui.views.editor_view import EditorView
-from app.ui.dialogs.companion_dialog import CompanionDialog
 from app.ui.dialogs.terminal_window import TerminalWindow
 from app.ui.styles import (
     MAIN_STYLESHEET,
-    SURFACE_BG,
-    TEXT_2,
+    FROSTED_BG,
+    FROSTED_BORDER,
+    SLATE_TITLE,
+    SLATE_MUTED,
     HEALTHY,
     CRITICAL,
-    WARNING,
 )
 
 
@@ -50,44 +50,62 @@ class MainWindow(QMainWindow):
     def __init__(self, config_manager: ConfigManager, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setWindowTitle("Cmdly")
-        self.resize(500, 620)
+        self.resize(520, 640)
         self.setStyleSheet(MAIN_STYLESHEET)
 
         self.config_manager = config_manager
         self.session_manager = SessionManager(self)
         self.ping_service = PingService(self)
-        self.terminal_window = TerminalWindow(self)
+        self.terminal_windows: Dict[str, TerminalWindow] = {}
+        self.errors: Dict[str, str] = {}
 
-        self.errors: Dict[str, str] = {}  # button_id -> error_msg
+        # Root Central Widget
+        self.root_widget = QWidget(self)
+        self.root_layout = QVBoxLayout(self.root_widget)
+        self.root_layout.setContentsMargins(14, 14, 14, 14)
+        self.root_layout.setSpacing(8)
 
-        # Central Layout
-        central = QWidget(self)
-        central.setStyleSheet(f"background-color: {SURFACE_BG};")
-        self.layout = QVBoxLayout(central)
-        self.layout.setContentsMargins(12, 12, 12, 12)
-        self.layout.setSpacing(8)
+        # Main Frosted Card Container
+        self.main_container = QFrame(self.root_widget)
+        self.main_container.setObjectName("MainContainer")
+        self.main_container.setStyleSheet(f"""
+            QFrame#MainContainer {{
+                background-color: {FROSTED_BG};
+                border: 1px solid {FROSTED_BORDER};
+                border-radius: 18px;
+            }}
+        """)
+
+        container_layout = QVBoxLayout(self.main_container)
+        container_layout.setContentsMargins(12, 12, 12, 12)
+        container_layout.setSpacing(8)
 
         # 1. Companion Strip
-        self.companion_bar = CompanionBar(central)
-        self.companion_bar.clicked.connect(self._open_companion_dialog)
+        self.companion_bar = CompanionBar(self.main_container)
+        self.companion_bar.clicked.connect(self._open_companion_modal)
         self.companion_bar.open_terminal_requested.connect(self._open_companion_terminal)
-        self.layout.addWidget(self.companion_bar)
+        container_layout.addWidget(self.companion_bar)
 
-        # 2. Status message strip (.schw-status)
-        self.status_label = QLabel("Ready", central)
-        self.status_label.setStyleSheet(f"font-size: 11.5px; color: {TEXT_2}; padding: 0 4px;")
-        self.layout.addWidget(self.status_label)
+        # 2. Status message strip
+        self.status_label = QLabel("Ready", self.main_container)
+        self.status_label.setStyleSheet(f"font-size: 11.5px; color: {SLATE_MUTED}; padding: 0 4px;")
+        container_layout.addWidget(self.status_label)
 
-        # 3. View Stack: ShelfView & EditorView
-        self.stack = QStackedWidget(central)
+        # 3. View Stack (ShelfView & EditorView)
+        self.stack = QStackedWidget(self.main_container)
         self.shelf_view = ShelfView(self.stack)
         self.editor_view = EditorView(self.config_manager.get_connections(), self.stack)
 
         self.stack.addWidget(self.shelf_view)
         self.stack.addWidget(self.editor_view)
-        self.layout.addWidget(self.stack, stretch=1)
+        container_layout.addWidget(self.stack, stretch=1)
 
-        self.setCentralWidget(central)
+        self.root_layout.addWidget(self.main_container)
+
+        # 4. In-App Modal Overlay for Companion Dialog (Image 2)
+        self.modal_overlay = ModalOverlay(self.root_widget)
+
+        self.setCentralWidget(self.root_widget)
 
         # Connect Signals
         self._connect_signals()
@@ -113,14 +131,9 @@ class MainWindow(QMainWindow):
         self.editor_view.cancelled.connect(lambda: self.stack.setCurrentWidget(self.shelf_view))
 
         # Session Manager
-        self.session_manager.session_output.connect(self.terminal_window.append_output)
+        self.session_manager.session_output.connect(self._on_session_output)
         self.session_manager.session_stopped.connect(self._on_session_stopped)
         self.session_manager.session_error.connect(self._on_session_error)
-
-        # Terminal Window
-        self.terminal_window.session_input.connect(self._send_terminal_input)
-        self.terminal_window.session_interrupt.connect(self._send_terminal_interrupt)
-        self.terminal_window.session_close.connect(self.session_manager.stop_session)
 
     def _refresh_shelf(self):
         buttons = self.config_manager.get_buttons()
@@ -133,23 +146,36 @@ class MainWindow(QMainWindow):
 
     def _set_status(self, text: str, kind: str = "info"):
         self.status_label.setText(text)
-        color = HEALTHY if kind == "ok" else (CRITICAL if kind == "err" else TEXT_2)
+        color = HEALTHY if kind == "ok" else (CRITICAL if kind == "err" else SLATE_MUTED)
         self.status_label.setStyleSheet(f"font-size: 11.5px; color: {color}; padding: 0 4px;")
 
-    # ---- Companion Actions --------------------------------------------------
+    # ---- Companion In-App Modal (Image 2) ------------------------------------
 
-    def _open_companion_dialog(self):
-        dlg = CompanionDialog(
+    def _open_companion_modal(self):
+        modal_content = CompanionModalWidget(
             self.config_manager.get_companion(),
             self.config_manager.get_connections(),
-            self,
+            self.modal_overlay,
         )
-        if dlg.exec():
-            if dlg.new_saved_connection:
-                self.config_manager.save_connection(dlg.new_saved_connection)
-            self.config_manager.set_companion(dlg.result_companion)
-            self.ping_service.set_companion(dlg.result_companion)
-            self._refresh_shelf()
+        modal_content.saved.connect(self._on_companion_modal_saved)
+        modal_content.cleared.connect(self._on_companion_modal_cleared)
+        modal_content.close_requested.connect(self.modal_overlay.dismiss)
+
+        self.modal_overlay.show_content(modal_content)
+
+    def _on_companion_modal_saved(self, companion: CompanionConfig, new_conn: Optional[SshConnection]):
+        if new_conn:
+            self.config_manager.save_connection(new_conn)
+        self.config_manager.set_companion(companion)
+        self.ping_service.set_companion(companion)
+        self._refresh_shelf()
+        self.modal_overlay.dismiss()
+
+    def _on_companion_modal_cleared(self):
+        self.config_manager.set_companion(None)
+        self.ping_service.set_companion(None)
+        self._refresh_shelf()
+        self.modal_overlay.dismiss()
 
     def _open_companion_terminal(self):
         comp = self.config_manager.get_companion()
@@ -170,9 +196,40 @@ class MainWindow(QMainWindow):
                 self._set_status("Could not connect to companion SSH", "err")
                 return
 
-        self.terminal_window.ensure_tab(sid, title)
-        self.terminal_window.show()
-        self.terminal_window.raise_()
+        win = self._ensure_terminal_window(sid, title, comp.host)
+        win.set_connected(True)
+        win.show()
+        win.raise_()
+
+    # ---- Terminal Window Management (Image 1) -------------------------------
+
+    def _ensure_terminal_window(self, session_id: str, title: str, host: str) -> TerminalWindow:
+        if session_id in self.terminal_windows:
+            win = self.terminal_windows[session_id]
+            win.set_info(title, host)
+            return win
+
+        win = TerminalWindow(session_id, title, host)
+        win.session_input.connect(self._send_terminal_input)
+        win.session_interrupt.connect(self._send_terminal_interrupt)
+        win.session_close.connect(self.session_manager.stop_session)
+
+        self.terminal_windows[session_id] = win
+        return win
+
+    def _on_session_output(self, session_id: str, text: str):
+        if session_id in self.terminal_windows:
+            self.terminal_windows[session_id].append_output(text)
+
+    def _send_terminal_input(self, session_id: str, data: str):
+        session = self.session_manager.get_session(session_id)
+        if session:
+            session.send(data)
+
+    def _send_terminal_interrupt(self, session_id: str):
+        session = self.session_manager.get_session(session_id)
+        if session:
+            session.interrupt()
 
     # ---- Button Execution ----------------------------------------------------
 
@@ -188,11 +245,11 @@ class MainWindow(QMainWindow):
     def _launch_terminal(self, button: ButtonConfig):
         sid = session_name(button.id)
         cmd_line = terminal_line(button)
+        host = "this computer" if button.target == TARGET_LOCAL else (button.connection or "ssh")
 
         if self.session_manager.is_active(sid):
             session = self.session_manager.get_session(sid)
             if button.restart:
-                # Send Ctrl-C, wait 1000ms, then send command again
                 session.interrupt()
                 QTimer.singleShot(1000, lambda: session.send(cmd_line + "\n"))
                 self._set_status(f"{button.label} restarted", "ok")
@@ -201,9 +258,10 @@ class MainWindow(QMainWindow):
                 self._set_status(f"{button.label} sent again to terminal", "ok")
 
             self.shelf_view.update_row_state(button.id, is_running=True)
-            self.terminal_window.ensure_tab(sid, button.label)
-            self.terminal_window.show()
-            self.terminal_window.raise_()
+            win = self._ensure_terminal_window(sid, button.label, host)
+            win.set_connected(True)
+            win.show()
+            win.raise_()
             return
 
         # Start new session
@@ -229,12 +287,12 @@ class MainWindow(QMainWindow):
                 self._refresh_shelf()
                 return
 
-        # Open tab and send initial command line
-        self.terminal_window.ensure_tab(sid, button.label)
-        self.terminal_window.show()
-        self.terminal_window.raise_()
+        win = self._ensure_terminal_window(sid, button.label, host)
+        win.set_connected(True)
+        win.show()
+        win.raise_()
 
-        # Send command line after slight delay so shell prompt is ready
+        # Send command after small prompt settling delay
         QTimer.singleShot(300, lambda: session.send(cmd_line + "\n"))
         self._set_status(f"{button.label} is running", "ok")
         self.shelf_view.update_row_state(button.id, is_running=True)
@@ -264,7 +322,7 @@ class MainWindow(QMainWindow):
             conn = self.config_manager.get_connection_by_name(button.connection)
             if not conn:
                 self.errors[button.id] = f"Connection '{button.connection}' not found"
-                self._set_status(f"Missing SSH connection", "err")
+                self._set_status("Missing SSH connection", "err")
                 self._refresh_shelf()
                 return
 
@@ -288,16 +346,20 @@ class MainWindow(QMainWindow):
 
     def open_terminal(self, button: ButtonConfig):
         sid = session_name(button.id)
+        host = "this computer" if button.target == TARGET_LOCAL else (button.connection or "ssh")
+
         if self.session_manager.is_active(sid):
-            self.terminal_window.ensure_tab(sid, button.label)
-            self.terminal_window.show()
-            self.terminal_window.raise_()
+            win = self._ensure_terminal_window(sid, button.label, host)
+            win.set_connected(True)
+            win.show()
+            win.raise_()
         else:
-            # Connect plain shell first
             self._connect_shell_only(button)
 
     def _connect_shell_only(self, button: ButtonConfig):
         sid = session_name(button.id)
+        host = "this computer" if button.target == TARGET_LOCAL else (button.connection or "ssh")
+
         if button.target == TARGET_LOCAL:
             session = self.session_manager.create_local_session(sid, button.label)
             if not session.start():
@@ -316,9 +378,10 @@ class MainWindow(QMainWindow):
                 self._refresh_shelf()
                 return
 
-        self.terminal_window.ensure_tab(sid, button.label)
-        self.terminal_window.show()
-        self.terminal_window.raise_()
+        win = self._ensure_terminal_window(sid, button.label, host)
+        win.set_connected(True)
+        win.show()
+        win.raise_()
         self._set_status(f"{button.label}: terminal ready, press button to start", "ok")
         self.shelf_view.update_row_state(button.id, is_running=True)
 
@@ -332,25 +395,15 @@ class MainWindow(QMainWindow):
             self.shelf_view.update_row_state(button.id, is_running=False)
 
     def _on_session_stopped(self, session_id: str):
-        # Find which button this session belonged to
         for b in self.config_manager.get_buttons():
             if session_name(b.id) == session_id:
                 self.shelf_view.update_row_state(b.id, is_running=False)
                 break
-        self.terminal_window.remove_tab(session_id)
+        if session_id in self.terminal_windows:
+            self.terminal_windows[session_id].set_connected(False)
 
     def _on_session_error(self, session_id: str, error: str):
         self._set_status(f"Error in {session_id}: {error}", "err")
-
-    def _send_terminal_input(self, session_id: str, data: str):
-        session = self.session_manager.get_session(session_id)
-        if session:
-            session.send(data)
-
-    def _send_terminal_interrupt(self, session_id: str):
-        session = self.session_manager.get_session(session_id)
-        if session:
-            session.interrupt()
 
     # ---- Editor Navigation ---------------------------------------------------
 
@@ -370,7 +423,6 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentWidget(self.shelf_view)
 
     def _on_editor_deleted(self, button_id: str):
-        # Close running session if any
         sid = session_name(button_id)
         if self.session_manager.is_active(sid):
             self.session_manager.stop_session(sid)
@@ -379,8 +431,13 @@ class MainWindow(QMainWindow):
         self._refresh_shelf()
         self.stack.setCurrentWidget(self.shelf_view)
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.modal_overlay.setGeometry(self.root_widget.rect())
+
     def closeEvent(self, event):
         self.ping_service.stop()
         self.session_manager.close_all()
-        self.terminal_window.close()
+        for win in list(self.terminal_windows.values()):
+            win.close()
         super().closeEvent(event)

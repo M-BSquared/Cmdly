@@ -1,4 +1,4 @@
-"""Crisp vector SVG icon rendering for Cmdly matching Lucide/Corvus icons."""
+"""Crisp vector SVG icon rendering for Cmdly matching Lucide/Apple/Corvus icons."""
 
 from typing import Dict
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor
@@ -60,14 +60,44 @@ SVG_DEFS: Dict[str, str] = {
     "activity": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
     </svg>""",
-    "terminal": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="4 17 10 11 4 5"/>
-        <line x1="12" x2="20" y1="19" y2="19"/>
+    "terminal-box": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="18" height="18" x="3" y="3" rx="4"/>
+        <path d="m8 9 3 3-3 3"/>
+        <line x1="13" x2="16" y1="15" y2="15"/>
+    </svg>""",
+    "pin": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" x2="12" y1="17" y2="22"/>
+        <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9V5h1a1 1 0 0 0 0-2H6.89a1 1 0 0 0 0 2h1v7.55l-1.78.9A2 2 0 0 0 5 15.24Z"/>
+    </svg>""",
+    "expand": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 3 21 3 21 9"/>
+        <polyline points="9 21 3 21 3 15"/>
+        <line x1="21" x2="14" y1="3" y2="10"/>
+        <line x1="3" x2="10" y1="21" y2="14"/>
+    </svg>""",
+    "shrink": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="4 14 10 14 10 20"/>
+        <polyline points="20 10 14 10 14 4"/>
+        <line x1="14" x2="21" y1="10" y2="3"/>
+        <line x1="3" x2="10" y1="21" y2="14"/>
+    </svg>""",
+    "power": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2v10"/>
+        <path d="M18.4 6.6a9 9 0 1 1-12.8 0"/>
+    </svg>""",
+    "info": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 16v-4"/>
+        <path d="M12 8h.01"/>
+    </svg>""",
+    "x": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" x2="6" y1="6" y2="18"/>
+        <line x1="6" x2="18" y1="6" y2="18"/>
     </svg>""",
 }
 
 
-def get_icon(name: str, color: str = "#f0f1f5", size: int = 24) -> QIcon:
+def get_icon(name: str, color: str = "#64748b", size: int = 24) -> QIcon:
     """Returns a QIcon rendered from SVG with specified color and size."""
     template = SVG_DEFS.get(name)
     if not template:
@@ -86,7 +116,7 @@ def get_icon(name: str, color: str = "#f0f1f5", size: int = 24) -> QIcon:
     return QIcon(pixmap)
 
 
-def get_pixmap(name: str, color: str = "#f0f1f5", size: int = 24) -> QPixmap:
+def get_pixmap(name: str, color: str = "#64748b", size: int = 24) -> QPixmap:
     template = SVG_DEFS.get(name)
     if not template:
         return QPixmap()

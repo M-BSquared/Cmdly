@@ -1,4 +1,4 @@
-"""Companion Computer status strip matching .schw-comp."""
+"""Companion Computer status strip matching Apple frosted design."""
 
 from typing import Optional
 from PySide6.QtWidgets import (
@@ -12,12 +12,11 @@ from PySide6.QtCore import Signal, Qt
 from app.models import CompanionConfig
 from app.ui.icons import get_icon
 from app.ui.styles import (
-    SURFACE_CARD,
-    SURFACE_HOVER,
-    BORDER_SOFT,
-    TEXT_1,
-    TEXT_2,
-    TEXT_3,
+    FROSTED_CARD,
+    FROSTED_CARD_HOVER,
+    SLATE_TITLE,
+    SLATE_MUTED,
+    SLATE_FAINT,
     HEALTHY,
     WARNING,
     CRITICAL,
@@ -37,25 +36,25 @@ class CompanionBar(QFrame):
         self.error_msg: str = ""
 
         self.setCursor(Qt.PointingHandCursor)
-        self.setFixedHeight(38)
+        self.setFixedHeight(40)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 4, 6, 4)
-        layout.setSpacing(8)
+        layout.setContentsMargins(12, 4, 8, 4)
+        layout.setSpacing(10)
 
         # Chip / CPU Icon
         self.icon_label = QLabel(self)
-        self.icon_label.setFixedSize(16, 16)
+        self.icon_label.setFixedSize(18, 18)
         layout.addWidget(self.icon_label)
 
         # Name & Host text
         self.name_label = QLabel("Companion computer", self)
-        self.name_label.setStyleSheet(f"font-weight: 600; font-size: 12px; color: {TEXT_1};")
+        self.name_label.setStyleSheet(f"font-weight: 700; font-size: 13px; color: {SLATE_TITLE};")
         layout.addWidget(self.name_label)
 
         self.host_label = QLabel("Press to set", self)
         self.host_label.setStyleSheet(
-            f'font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 11px; color: {TEXT_3};'
+            f'font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 11.5px; color: {SLATE_MUTED};'
         )
         layout.addWidget(self.host_label)
 
@@ -68,11 +67,11 @@ class CompanionBar(QFrame):
         state_layout.setSpacing(6)
 
         self.dot_label = QLabel("●", self.state_container)
-        self.dot_label.setStyleSheet(f"font-size: 10px; color: {TEXT_3};")
+        self.dot_label.setStyleSheet(f"font-size: 9px; color: {SLATE_FAINT};")
         state_layout.addWidget(self.dot_label)
 
         self.state_text = QLabel("Not set", self.state_container)
-        self.state_text.setStyleSheet(f"font-size: 11px; font-weight: 600; color: {TEXT_2};")
+        self.state_text.setStyleSheet(f"font-size: 11.5px; font-weight: 700; color: {SLATE_MUTED};")
         state_layout.addWidget(self.state_text)
 
         layout.addWidget(self.state_container)
@@ -90,7 +89,7 @@ class CompanionBar(QFrame):
                 border-radius: {RADIUS_BTN}px;
             }}
             QPushButton:hover {{
-                background-color: {SURFACE_HOVER};
+                background-color: rgba(16, 185, 129, 0.12);
             }}
         """)
         self.arrow_btn.clicked.connect(self.open_terminal_requested.emit)
@@ -114,7 +113,6 @@ class CompanionBar(QFrame):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            # Check if clicked on arrow_btn area
             if not self.arrow_btn.geometry().contains(event.pos()) or not self.arrow_btn.isVisible():
                 self.clicked.emit()
         super().mousePressEvent(event)
@@ -145,7 +143,7 @@ class CompanionBar(QFrame):
             show_arrow = False
         elif self.state == "checking":
             border_color = WARNING
-            icon_color = TEXT_3
+            icon_color = SLATE_MUTED
             dot_color = WARNING
             state_str = "Checking"
             tooltip = "Waiting for echo"
@@ -158,26 +156,27 @@ class CompanionBar(QFrame):
             tooltip = self.error_msg or "Cannot ping host"
             show_arrow = False
         else:  # unset
-            border_color = BORDER_SOFT
-            icon_color = TEXT_3
-            dot_color = TEXT_3
+            border_color = "rgba(0, 0, 0, 0.08)"
+            icon_color = SLATE_FAINT
+            dot_color = SLATE_FAINT
             state_str = "Not set"
             tooltip = "Set companion computer to watch"
             show_arrow = False
 
         self.setStyleSheet(f"""
             CompanionBar {{
-                background-color: {SURFACE_CARD};
+                background-color: {FROSTED_CARD};
                 border: 1px solid {border_color};
-                border-radius: {RADIUS_BTN}px;
+                border-radius: 12px;
             }}
             CompanionBar:hover {{
-                background-color: {SURFACE_HOVER};
+                background-color: {FROSTED_CARD_HOVER};
             }}
         """)
 
-        self.icon_label.setPixmap(get_icon("cpu", icon_color, 16).pixmap(16, 16))
-        self.dot_label.setStyleSheet(f"font-size: 10px; color: {dot_color};")
+        self.icon_label.setPixmap(get_icon("cpu", icon_color, 18).pixmap(18, 18))
+        self.dot_label.setStyleSheet(f"font-size: 9px; color: {dot_color};")
         self.state_text.setText(state_str)
+        self.state_text.setStyleSheet(f"font-size: 11.5px; font-weight: 700; color: {dot_color if self.state != 'unset' else SLATE_MUTED};")
         self.setToolTip(tooltip)
         self.arrow_btn.setVisible(show_arrow)

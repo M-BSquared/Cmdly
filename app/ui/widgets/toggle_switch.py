@@ -1,9 +1,9 @@
-"""Modern iOS/Desktop toggle switch widget."""
+"""Apple iOS/macOS styled toggle switch widget."""
 
 from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import Signal, Qt, QPropertyAnimation, Property, QRectF
 from PySide6.QtGui import QPainter, QColor, QPen
-from app.ui.styles import ACCENT, BORDER_SOFT, TEXT_3, PANEL_FILL
+from app.ui.styles import ACCENT_ORANGE, SLATE_BORDER
 
 
 class ToggleSwitch(QWidget):
@@ -54,22 +54,21 @@ class ToggleSwitch(QWidget):
         h = self.height()
         radius = h / 2.0
 
-        # Background Track
-        track_color = QColor(ACCENT) if self._checked else QColor(PANEL_FILL)
-        border_color = QColor(ACCENT) if self._checked else QColor(BORDER_SOFT)
+        # Background Track (Vibrant orange when on, soft light gray when off)
+        track_color = QColor(ACCENT_ORANGE) if self._checked else QColor("#e2e8f0")
+        border_color = QColor(ACCENT_ORANGE) if self._checked else QColor(SLATE_BORDER)
 
         painter.setBrush(track_color)
         painter.setPen(QPen(border_color, 1))
         painter.drawRoundedRect(QRectF(0.5, 0.5, w - 1, h - 1), radius, radius)
 
-        # Thumb
-        thumb_diameter = h - 6
-        x_min = 3.0
-        x_max = w - thumb_diameter - 3.0
+        # Thumb (Pure white circle with subtle shadow)
+        thumb_diameter = h - 4
+        x_min = 2.0
+        x_max = w - thumb_diameter - 2.0
         x = x_min + self._thumb_position * (x_max - x_min)
-        y = 3.0
+        y = 2.0
 
-        thumb_color = QColor("#ffffff") if self._checked else QColor(TEXT_3)
-        painter.setBrush(thumb_color)
-        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor("#ffffff"))
+        painter.setPen(QPen(QColor(0, 0, 0, 25), 1))
         painter.drawEllipse(QRectF(x, y, thumb_diameter, thumb_diameter))

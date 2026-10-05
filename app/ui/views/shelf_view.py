@@ -1,4 +1,4 @@
-"""Main Shelf View showing the launch button rows matching Schwalby shelf."""
+"""Main Shelf View showing the launch button rows with Apple frosted design."""
 
 from typing import List, Dict, Optional
 from PySide6.QtWidgets import (
@@ -16,16 +16,14 @@ from app.models import ButtonConfig, SshConnection, MAX_BUTTONS, TARGET_SSH
 from app.ui.widgets.shelf_row import ShelfRow
 from app.ui.icons import get_icon
 from app.ui.styles import (
-    PANEL_FILL,
-    SURFACE_HOVER,
-    SURFACE_ACTIVE,
-    BORDER_SOFT,
-    TEXT_1,
-    TEXT_2,
-    TEXT_3,
-    CRITICAL,
-    RADIUS_BTN,
+    FROSTED_CARD,
+    FROSTED_BORDER,
+    FROSTED_INPUT,
+    SLATE_TITLE,
+    SLATE_TEXT,
+    SLATE_MUTED,
     RADIUS_CARD,
+    RADIUS_BTN,
 )
 
 
@@ -43,17 +41,24 @@ class ShelfView(QWidget):
         self.row_widgets: Dict[str, ShelfRow] = {}
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(12, 12, 12, 12)
+        main_layout.setContentsMargins(12, 6, 12, 12)
         main_layout.setSpacing(10)
 
-        # Card container
+        # Card container with Apple frosted style
         self.card = QFrame(self)
         self.card.setObjectName("Card")
+        self.card.setStyleSheet(f"""
+            QFrame#Card {{
+                background-color: {FROSTED_CARD};
+                border: 1px solid {FROSTED_BORDER};
+                border-radius: {RADIUS_CARD}px;
+            }}
+        """)
         card_layout = QVBoxLayout(self.card)
-        card_layout.setContentsMargins(16, 14, 16, 14)
+        card_layout.setContentsMargins(14, 14, 14, 14)
         card_layout.setSpacing(10)
 
-        # Rows container inside scroll area if needed
+        # Rows container inside scroll area
         self.scroll_area = QScrollArea(self.card)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QFrame.NoFrame)
@@ -72,13 +77,13 @@ class ShelfView(QWidget):
             self.card,
         )
         self.empty_label.setWordWrap(True)
-        self.empty_label.setStyleSheet(f"font-size: 13px; color: {TEXT_3}; padding: 12px 0;")
+        self.empty_label.setStyleSheet(f"font-size: 13px; color: {SLATE_MUTED}; padding: 14px 4px;")
         card_layout.addWidget(self.empty_label)
 
         # Missing Connections note
         self.note_label = QLabel("", self.card)
         self.note_label.setWordWrap(True)
-        self.note_label.setStyleSheet(f"font-size: 11px; color: {TEXT_2}; padding: 4px 0;")
+        self.note_label.setStyleSheet(f"font-size: 11.5px; color: {SLATE_MUTED}; padding: 4px 0;")
         self.note_label.hide()
         card_layout.addWidget(self.note_label)
 
@@ -90,19 +95,20 @@ class ShelfView(QWidget):
 
         self.add_btn = QPushButton("Add button", add_bar)
         self.add_btn.setCursor(Qt.PointingHandCursor)
-        self.add_btn.setIcon(get_icon("plus", TEXT_1, 14))
+        self.add_btn.setIcon(get_icon("plus", SLATE_TITLE, 14))
         self.add_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {SURFACE_HOVER};
-                color: {TEXT_1};
-                border: 1px solid {BORDER_SOFT};
+                background-color: #ffffff;
+                color: {SLATE_TITLE};
+                border: 1px solid rgba(0, 0, 0, 0.08);
                 border-radius: {RADIUS_BTN}px;
-                padding: 7px 14px;
-                font-weight: 500;
-                font-size: 12px;
+                padding: 7px 16px;
+                font-weight: 600;
+                font-size: 12.5px;
             }}
             QPushButton:hover {{
-                background-color: {SURFACE_ACTIVE};
+                background-color: rgba(255, 255, 255, 0.95);
+                border-color: rgba(0, 0, 0, 0.15);
             }}
             QPushButton:disabled {{
                 opacity: 0.4;
@@ -113,19 +119,19 @@ class ShelfView(QWidget):
         ab_layout.addStretch()
         card_layout.addWidget(add_bar)
 
-        # Detached output log area (collapsible .schw-output)
+        # Detached output log area
         self.output_area = QTextEdit(self.card)
         self.output_area.setReadOnly(True)
         self.output_area.setMaximumHeight(140)
         self.output_area.setStyleSheet(f"""
             QTextEdit {{
-                background-color: {PANEL_FILL};
-                border: 1px solid {BORDER_SOFT};
+                background-color: {FROSTED_INPUT};
+                border: 1px solid rgba(0, 0, 0, 0.08);
                 border-radius: {RADIUS_BTN}px;
                 padding: 8px;
                 font-family: "SF Mono", Menlo, Monaco, monospace;
-                font-size: 11px;
-                color: {TEXT_2};
+                font-size: 11.5px;
+                color: {SLATE_TEXT};
             }}
         """)
         self.output_area.hide()

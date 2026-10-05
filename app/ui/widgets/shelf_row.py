@@ -1,4 +1,4 @@
-"""Launch button shelf row widget matching .schw-row."""
+"""Launch button shelf row widget with Apple frosted design."""
 
 from typing import Optional
 from PySide6.QtWidgets import (
@@ -16,13 +16,14 @@ from app.models import (
 )
 from app.ui.icons import get_icon
 from app.ui.styles import (
-    SURFACE_HOVER,
-    SURFACE_ACTIVE,
-    BORDER_SOFT,
-    TEXT_1,
-    TEXT_3,
+    FROSTED_CARD,
+    FROSTED_CARD_HOVER,
+    SLATE_TITLE,
+    SLATE_MUTED,
+    SLATE_FAINT,
     HEALTHY,
     CRITICAL,
+    ACCENT_ORANGE,
     RADIUS_BTN,
 )
 
@@ -45,26 +46,26 @@ class ShelfRow(QWidget):
         self.is_running = is_running
         self.error_msg = error_msg
 
-        self.setFixedHeight(36)
+        self.setFixedHeight(38)
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 3, 0, 3)
+        layout.setContentsMargins(0, 2, 0, 2)
         layout.setSpacing(6)
 
-        # 1. Main Launch Button
+        # 1. Main Launch Button (Frosted pill)
         self.launch_btn = QPushButton(self)
         self.launch_btn.setCursor(Qt.PointingHandCursor)
         self.launch_btn.clicked.connect(lambda: self.launch_clicked.emit(self.button))
 
         btn_layout = QHBoxLayout(self.launch_btn)
-        btn_layout.setContentsMargins(10, 0, 10, 0)
+        btn_layout.setContentsMargins(12, 0, 12, 0)
         btn_layout.setSpacing(8)
 
         self.play_icon = QLabel(self.launch_btn)
-        self.play_icon.setPixmap(get_icon("play", TEXT_1, 12).pixmap(12, 12))
+        self.play_icon.setPixmap(get_icon("play", SLATE_TITLE, 11).pixmap(11, 11))
         btn_layout.addWidget(self.play_icon)
 
         self.label_text = QLabel(self.button.label, self.launch_btn)
-        self.label_text.setStyleSheet(f"font-weight: 500; font-size: 13px; color: {TEXT_1};")
+        self.label_text.setStyleSheet(f"font-weight: 600; font-size: 13px; color: {SLATE_TITLE};")
         btn_layout.addWidget(self.label_text)
 
         btn_layout.addStretch()
@@ -74,7 +75,8 @@ class ShelfRow(QWidget):
         is_local = (self.button.target == TARGET_LOCAL)
         icon_name = "laptop" if is_local else "server"
         where_title = "Runs on this computer" if is_local else f"Runs on {self.button.connection or 'SSH'} over SSH"
-        self.where_icon.setPixmap(get_icon(icon_name, TEXT_3, 14).pixmap(14, 14))
+        icon_color = SLATE_FAINT if is_local else ACCENT_ORANGE
+        self.where_icon.setPixmap(get_icon(icon_name, icon_color, 14).pixmap(14, 14))
         self.where_icon.setToolTip(where_title)
         btn_layout.addWidget(self.where_icon)
 
@@ -84,7 +86,7 @@ class ShelfRow(QWidget):
         self.tools_container = QWidget(self)
         tools_layout = QHBoxLayout(self.tools_container)
         tools_layout.setContentsMargins(0, 0, 0, 0)
-        tools_layout.setSpacing(2)
+        tools_layout.setSpacing(3)
 
         # Failure warning triangle
         self.error_btn = QPushButton(self.tools_container)
@@ -95,7 +97,7 @@ class ShelfRow(QWidget):
 
         # Running green dot
         self.dot_label = QLabel("●", self.tools_container)
-        self.dot_label.setStyleSheet(f"color: {HEALTHY}; font-size: 10px; margin: 0 4px;")
+        self.dot_label.setStyleSheet(f"color: {HEALTHY}; font-size: 9px; margin: 0 4px;")
         self.dot_label.setToolTip("Running")
         tools_layout.addWidget(self.dot_label)
 
@@ -103,12 +105,12 @@ class ShelfRow(QWidget):
         self.term_btn = QPushButton(self.tools_container)
         self.term_btn.setFixedSize(26, 26)
         self.term_btn.setCursor(Qt.PointingHandCursor)
-        self.term_btn.setIcon(get_icon("chevron-right", HEALTHY if is_running else TEXT_3, 14))
+        self.term_btn.setIcon(get_icon("chevron-right", HEALTHY if is_running else SLATE_MUTED, 13))
         self.term_btn.setStyleSheet(f"""
             QPushButton {{ background: transparent; border: none; border-radius: {RADIUS_BTN}px; }}
-            QPushButton:hover {{ background-color: {SURFACE_HOVER}; }}
+            QPushButton:hover {{ background-color: rgba(0, 0, 0, 0.05); }}
         """)
-        self.term_btn.setToolTip("Open terminal window")
+        self.term_btn.setToolTip("Open in-app terminal")
         self.term_btn.clicked.connect(lambda: self.terminal_clicked.emit(self.button))
         tools_layout.addWidget(self.term_btn)
 
@@ -118,7 +120,7 @@ class ShelfRow(QWidget):
         self.action_btn.setCursor(Qt.PointingHandCursor)
         self.action_btn.setStyleSheet(f"""
             QPushButton {{ background: transparent; border: none; border-radius: {RADIUS_BTN}px; }}
-            QPushButton:hover {{ background-color: {SURFACE_HOVER}; }}
+            QPushButton:hover {{ background-color: rgba(0, 0, 0, 0.05); }}
         """)
         self.action_btn.clicked.connect(self._on_action_clicked)
         tools_layout.addWidget(self.action_btn)
@@ -133,7 +135,6 @@ class ShelfRow(QWidget):
         self._apply_state()
 
     def _apply_state(self):
-        # Update launch button style and tooltip
         preview = preview_line(self.button)
         if self.is_running:
             title = f"Restart in terminal\n{preview}" if self.button.restart else f"Run again in terminal\n{preview}"
@@ -143,14 +144,15 @@ class ShelfRow(QWidget):
         self.launch_btn.setToolTip(title)
         self.launch_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {SURFACE_HOVER};
-                border: 1px solid {BORDER_SOFT};
-                border-radius: {RADIUS_BTN}px;
+                background-color: {FROSTED_CARD};
+                border: 1px solid rgba(0, 0, 0, 0.06);
+                border-radius: 10px;
                 text-align: left;
                 padding: 0;
             }}
             QPushButton:hover {{
-                background-color: {SURFACE_ACTIVE};
+                background-color: {FROSTED_CARD_HOVER};
+                border-color: rgba(0, 0, 0, 0.12);
             }}
         """)
 
@@ -166,14 +168,14 @@ class ShelfRow(QWidget):
         is_bg = (self.button.mode == MODE_BACKGROUND)
         self.term_btn.setVisible(not is_bg)
         if not is_bg:
-            self.term_btn.setIcon(get_icon("chevron-right", HEALTHY if self.is_running else TEXT_3, 14))
+            self.term_btn.setIcon(get_icon("chevron-right", HEALTHY if self.is_running else SLATE_MUTED, 13))
 
         # Action button (Stop vs Edit)
         if self.is_running:
-            self.action_btn.setIcon(get_icon("square", CRITICAL, 13))
+            self.action_btn.setIcon(get_icon("square", CRITICAL, 12))
             self.action_btn.setToolTip("Stop program (Ctrl-C) and close session")
         else:
-            self.action_btn.setIcon(get_icon("pencil", TEXT_3, 13))
+            self.action_btn.setIcon(get_icon("pencil", SLATE_MUTED, 13))
             self.action_btn.setToolTip("Edit button settings")
 
     def _on_action_clicked(self):

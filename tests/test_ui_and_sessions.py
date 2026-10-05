@@ -80,6 +80,39 @@ class TestUiAndSessions(unittest.TestCase):
 
         window.close()
 
+    def test_ticked_slider(self):
+        from app.ui.widgets.ticked_slider import TickedSlider
+        slider = TickedSlider([1, 2, 3, 5, 10], initial_value=2)
+        self.assertEqual(slider.value(), 2)
+
+        slider.setValue(5)
+        self.assertEqual(slider.value(), 5)
+
+        slider.setIndex(0)
+        self.assertEqual(slider.value(), 1)
+
+    def test_terminal_window(self):
+        from app.ui.dialogs.terminal_window import TerminalWindow
+        win = TerminalWindow("test_sess", title="ls", host="this computer")
+        self.assertEqual(win.session_id, "test_sess")
+        self.assertEqual(win.title_label.text(), "ls")
+        self.assertEqual(win.host_label.text(), "this computer")
+
+        win.append_output("hello terminal")
+        self.assertIn("hello terminal", win.output_area.toPlainText())
+
+        win.set_connected(True)
+        self.assertEqual(win.status_text.text(), "CONNECTED")
+        win.close()
+
+    def test_companion_modal(self):
+        from app.ui.widgets.companion_modal import CompanionModalWidget
+        from app.models import CompanionConfig
+        comp = CompanionConfig(name="TestComp", host="192.168.1.99")
+        modal = CompanionModalWidget(comp, [])
+        self.assertEqual(modal.interval_slider.value(), 2)
+        self.assertEqual(modal.timeout_slider.value(), 6)
+
 
 if __name__ == "__main__":
     unittest.main()

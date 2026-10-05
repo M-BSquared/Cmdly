@@ -1,100 +1,125 @@
-"""Theme definitions and stylesheet matching the Schwalby design system."""
+"""Theme definitions and Apple Frosted Glass design system."""
 
-SURFACE_BG = "#121316"
-SURFACE_CARD = "#18191f"
-SURFACE_HOVER = "#22242b"
-SURFACE_ACTIVE = "#2a2d37"
-BORDER_SOFT = "#2c2e38"
-PANEL_FILL = "#14151a"
-PANEL_HAIRLINE = "#23252d"
+# Apple Frosted Glass Color System
+ACCENT_ORANGE = "#ea580c"
+ACCENT_ORANGE_HOVER = "#f97316"
+ACCENT_ORANGE_ACTIVE = "#c2410c"
 
-TEXT_1 = "#f0f1f5"
-TEXT_2 = "#b0b3c0"
-TEXT_3 = "#727686"
+HEALTHY = "#10b981"         # Emerald Green for CONNECTED & Online
+HEALTHY_LIGHT = "rgba(16, 185, 129, 0.12)"
+WARNING = "#f59e0b"         # Amber
+CRITICAL = "#ef4444"        # Red
 
-HEALTHY = "#2ec971"
-WARNING = "#f5a623"
-CRITICAL = "#eb4d4b"
-CRITICAL_BRIGHT = "#ff5e57"
-ACCENT = "#3b82f6"
-ACCENT_BRIGHT = "#60a5fa"
+SLATE_TITLE = "#0f172a"     # Main dark headers & terminal text
+SLATE_TEXT = "#1e293b"      # Body text
+SLATE_MUTED = "#64748b"     # Subtitle & hints
+SLATE_FAINT = "#94a3b8"     # Tertiary & icons
+SLATE_BORDER = "#cbd5e1"    # Slider inactive track
 
-RADIUS_BTN = 6
-RADIUS_CARD = 10
+# Frosted Glass Translucencies
+FROSTED_BG = "rgba(232, 236, 238, 0.90)"
+FROSTED_MODAL = "rgba(226, 231, 234, 0.95)"
+FROSTED_OVERLAY = "rgba(15, 23, 42, 0.35)"
+FROSTED_CARD = "rgba(255, 255, 255, 0.65)"
+FROSTED_CARD_HOVER = "rgba(255, 255, 255, 0.88)"
+FROSTED_INPUT = "rgba(255, 255, 255, 0.92)"
+FROSTED_BORDER = "rgba(255, 255, 255, 0.70)"
+HAIRLINE = "rgba(0, 0, 0, 0.08)"
+
+RADIUS_MODAL = 20
+RADIUS_CARD = 14
+RADIUS_BTN = 10
+
+# Compatibility Aliases
+ACCENT = ACCENT_ORANGE
+BORDER_SOFT = "rgba(0, 0, 0, 0.08)"
+PANEL_FILL = "rgba(255, 255, 255, 0.7)"
+SURFACE_BG = FROSTED_BG
+SURFACE_CARD = FROSTED_CARD
+SURFACE_HOVER = FROSTED_CARD_HOVER
+SURFACE_ACTIVE = "rgba(255, 255, 255, 0.95)"
+TEXT_1 = SLATE_TITLE
+TEXT_2 = SLATE_TEXT
+TEXT_3 = SLATE_MUTED
 
 MAIN_STYLESHEET = f"""
 QMainWindow {{
-    background-color: {SURFACE_BG};
-    color: {TEXT_1};
+    background-color: {FROSTED_BG};
+    color: {SLATE_TEXT};
 }}
 
 QWidget {{
-    color: {TEXT_1};
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: {SLATE_TEXT};
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
 }}
 
 QScrollArea {{
-    background-color: transparent;
+    background: transparent;
     border: none;
 }}
 
 QScrollBar:vertical {{
     background: transparent;
-    width: 8px;
+    width: 6px;
     margin: 0px;
 }}
 
 QScrollBar::handle:vertical {{
-    background: {BORDER_SOFT};
-    min-height: 20px;
-    border-radius: 4px;
+    background: rgba(100, 116, 139, 0.35);
+    min-height: 24px;
+    border-radius: 3px;
 }}
 
 QScrollBar::handle:vertical:hover {{
-    background: {TEXT_3};
+    background: rgba(100, 116, 139, 0.6);
 }}
 
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
     height: 0px;
 }}
 
-/* Card Frame */
+/* Frosted Cards */
 QFrame#Card {{
-    background-color: {SURFACE_CARD};
-    border: 1px solid {BORDER_SOFT};
+    background-color: {FROSTED_CARD};
+    border: 1px solid {FROSTED_BORDER};
     border-radius: {RADIUS_CARD}px;
 }}
 
-/* Primary Buttons */
+/* Primary Buttons (Apple Orange) */
 QPushButton.PrimaryBtn {{
-    background-color: {ACCENT};
+    background-color: {ACCENT_ORANGE};
     color: #ffffff;
     border: none;
     border-radius: {RADIUS_BTN}px;
-    padding: 8px 16px;
+    padding: 8px 18px;
     font-weight: 600;
+    font-size: 13px;
 }}
 QPushButton.PrimaryBtn:hover {{
-    background-color: {ACCENT_BRIGHT};
+    background-color: {ACCENT_ORANGE_HOVER};
+}}
+QPushButton.PrimaryBtn:pressed {{
+    background-color: {ACCENT_ORANGE_ACTIVE};
 }}
 QPushButton.PrimaryBtn:disabled {{
-    background-color: {PANEL_FILL};
-    color: {TEXT_3};
+    background-color: rgba(203, 213, 225, 0.6);
+    color: {SLATE_FAINT};
 }}
 
-/* Secondary Buttons */
-QPushButton.SecondaryBtn {{
-    background-color: {SURFACE_HOVER};
-    color: {TEXT_1};
-    border: 1px solid {BORDER_SOFT};
+/* Secondary / Pill Buttons */
+QPushButton.PillBtn {{
+    background-color: #ffffff;
+    color: {SLATE_TEXT};
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: {RADIUS_BTN}px;
     padding: 8px 16px;
     font-weight: 500;
+    font-size: 13px;
 }}
-QPushButton.SecondaryBtn:hover {{
-    background-color: {SURFACE_ACTIVE};
-    border-color: {TEXT_3};
+QPushButton.PillBtn:hover {{
+    background-color: {FROSTED_CARD_HOVER};
+    border-color: rgba(0, 0, 0, 0.15);
 }}
 
 /* Danger Buttons */
@@ -114,27 +139,29 @@ QPushButton.DangerBtn:hover {{
 /* Ghost Buttons */
 QPushButton.GhostBtn {{
     background-color: transparent;
-    color: {TEXT_2};
+    color: {SLATE_MUTED};
     border: none;
     border-radius: {RADIUS_BTN}px;
     padding: 8px 14px;
 }}
 QPushButton.GhostBtn:hover {{
-    background-color: {SURFACE_HOVER};
-    color: {TEXT_1};
+    color: {SLATE_TITLE};
+    background-color: rgba(0, 0, 0, 0.04);
 }}
 
 /* Inputs and Forms */
-QLineEdit, QComboBox, QSpinBox {{
-    background-color: {PANEL_FILL};
-    color: {TEXT_1};
-    border: 1px solid {BORDER_SOFT};
+QLineEdit, QComboBox {{
+    background-color: {FROSTED_INPUT};
+    color: {SLATE_TEXT};
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: {RADIUS_BTN}px;
-    padding: 7px 10px;
-    selection-background-color: {ACCENT};
+    padding: 8px 12px;
+    font-size: 13px;
+    selection-background-color: {ACCENT_ORANGE};
+    selection-color: #ffffff;
 }}
 QLineEdit:focus, QComboBox:focus {{
-    border-color: {ACCENT};
+    border-color: {ACCENT_ORANGE};
 }}
 QLineEdit[mono="true"] {{
     font-family: "SF Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
@@ -143,57 +170,29 @@ QLineEdit[mono="true"] {{
 
 QComboBox::drop-down {{
     border: none;
-    width: 20px;
+    width: 24px;
 }}
 QComboBox QAbstractItemView {{
-    background-color: {SURFACE_CARD};
-    color: {TEXT_1};
-    border: 1px solid {BORDER_SOFT};
-    selection-background-color: {SURFACE_HOVER};
+    background-color: #ffffff;
+    color: {SLATE_TEXT};
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    selection-background-color: rgba(234, 88, 12, 0.1);
+    selection-color: {ACCENT_ORANGE};
 }}
 
-/* Sliders */
-QSlider::groove:horizontal {{
-    height: 4px;
-    background: {PANEL_FILL};
-    border-radius: 2px;
-}}
-QSlider::sub-page:horizontal {{
-    background: {ACCENT};
-    border-radius: 2px;
-}}
-QSlider::handle:horizontal {{
-    background: {TEXT_1};
-    width: 14px;
-    margin-top: -5px;
-    margin-bottom: -5px;
-    border-radius: 7px;
-}}
-QSlider::handle:horizontal:hover {{
-    background: {ACCENT_BRIGHT};
+/* Form Section Labels */
+QLabel.FormSectionLabel {{
+    font-size: 11px;
+    font-weight: 700;
+    color: {SLATE_MUTED};
+    letter-spacing: 0.6px;
 }}
 
-/* Preview Output Block */
-QFrame#PreviewBox {{
-    background-color: {PANEL_FILL};
-    border: 1px solid {BORDER_SOFT};
-    border-radius: {RADIUS_BTN}px;
-    padding: 10px 12px;
-}}
-
-QLabel.PreviewText {{
-    font-family: "SF Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
-    font-size: 12px;
-    color: {TEXT_2};
-}}
-
-QLabel.StatusLabel {{
-    font-size: 12px;
-    color: {TEXT_2};
-}}
-
-QDialog {{
-    background-color: {SURFACE_BG};
-    color: {TEXT_1};
+/* Hairline Separator */
+QFrame#Hairline {{
+    background-color: {HAIRLINE};
+    max-height: 1px;
+    border: none;
 }}
 """
