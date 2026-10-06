@@ -1,76 +1,134 @@
 <p align="center">
-  <img src="assets/icon.png" width="128" alt="Cmdly">
+  <img src="assets/icon.png" width="112" alt="Cmdly">
 </p>
 
 <h1 align="center">Cmdly</h1>
 
 <p align="center">
-  <em>Ein-Klick-Buttons für die Programme, die du immer wieder startest –<br>
-  auf diesem Rechner oder per SSH auf einem anderen.</em>
+  <strong>Ein Klick statt fünf Terminals.</strong><br>
+  Buttons für die Programme, die du immer wieder startest:<br>
+  auf diesem Rechner oder per SSH auf einem anderen.
+</p>
+
+<p align="center">
+  <a href="https://github.com/M-BSquared/Cmdly/actions/workflows/build.yml"><img src="https://github.com/M-BSquared/Cmdly/actions/workflows/build.yml/badge.svg" alt="Build"></a>
+  <img src="https://img.shields.io/badge/macOS-arm64%20%7C%20x86__64-1C1F25?logo=apple&logoColor=white" alt="macOS">
+  <img src="https://img.shields.io/badge/Linux-AppImage-1C1F25?logo=linux&logoColor=white" alt="Linux">
+  <img src="https://img.shields.io/badge/Python-3.12%2B-3B9EFF?logo=python&logoColor=white" alt="Python 3.12+">
+  <img src="https://img.shields.io/badge/Qt-PySide6-41CD52?logo=qt&logoColor=white" alt="PySide6">
+</p>
+
+<p align="center">
+  <img src="docs/images/hero.png" alt="Cmdly: das Hauptfenster mit zwei Begleitcomputern und fünf Buttons, daneben ein Terminal-Fenster mit einem laufenden Mission Planner">
 </p>
 
 ---
 
-## Was ist Cmdly?
+## Warum Cmdly?
 
-Cmdly ist eine Desktop-App (macOS und Linux) mit einer Leiste aus Start-Buttons.
-Jeder Button startet einen Befehl in einem Ordner – lokal oder auf einem
-Begleitcomputer per SSH – entweder in einem echten Terminal oder im
-Hintergrund. Oben zeigt eine Statusleiste, ob der Begleitcomputer erreichbar
-ist (Ping mit Latenz) und öffnet auf Wunsch direkt eine SSH-Shell auf ihm.
+Wer mit einem Begleitcomputer arbeitet (einer Drohne, einem Roboter, einem
+Raspberry Pi im Feld), startet jeden Tag dieselben Befehle: SSH-Login, in den
+Ordner wechseln, Bridge starten, Kamera-Stream starten, Logs holen. Cmdly
+macht aus jedem dieser Befehle einen Button.
 
-Cmdly ist die eigenständige Version des Schwalby-/SSH-Launcher-Plugins aus
-[Corvus GCS](https://github.com/M-BSquared/CorvusGCS) und teilt dessen
-Architektur: ein Python-Backend und eine Web-Oberfläche in einem
-PySide6/QtWebEngine-Fenster, dieselben Terminal-Fenster (xterm.js) und
-dieselben UI-Komponenten.
+- **Ein Klick** startet einen Befehl in einem echten Terminal oder still im Hintergrund.
+- **Lokal oder per SSH**, mit gespeicherten Verbindungen, Passwort oder Schlüsseldatei.
+- **Auf einen Blick**, ob deine Rechner erreichbar sind: jeder wird gepingt, mit Latenz.
+- **Echte Terminals** in eigenen Fenstern: Ctrl-C, `top`, `vim`, Passwortabfragen.
+
+Cmdly ist die eigenständige Version des SSH-Launcher-Plugins aus
+[Corvus GCS](https://github.com/M-BSquared/CorvusGCS).
 
 ## Funktionen
 
-- **Buttons** (bis zu 24): Label, Ziel (Lokal / SSH), Ordner, Befehl,
-  Live-Vorschau des ausgeführten Befehls, Sortieren per Drag & Drop.
-  - **Terminal-Modus:** `cd -- <Ordner> && <Befehl>` in einer eigenen Shell
-    pro Button (echtes PTY: Ctrl-C, `top`, `vim`, Passwortabfragen).
-    Erneutes Drücken führt den Befehl im selben Terminal erneut aus;
-    mit *Restart on press* wird vorher Ctrl-C gesendet.
-  - **Hintergrund-Modus:** lokal als Kindprozess (endet mit Cmdly), per SSH
-    mit `nohup` (läuft weiter, auch wenn Cmdly beendet wird).
-  - Läuft ein Programm, wird der Stift zum Stopp-Button (Ctrl-C, dann Session
-    schließen). Fehler stehen als Warn-Symbol mit Popover direkt in der Zeile.
-- **Terminal-Fenster wie in Corvus:** standardmäßig eigene, rahmenlose
-  Fenster (überall platzierbar, über Cmdly anheftbar, maximierbar, zurück ins
-  Hauptfenster ziehbar), optional als Rahmen im Hauptfenster. Frosted Glass
-  oder deckend; der Verlauf wird beim erneuten Öffnen wiederhergestellt.
-- **Begleitcomputer:** mehrere speicherbar, Schnellumschalter, Ping- oder
-  SSH-Modus, einstellbares Intervall und Timeout, Filter „nur ausführbare
-  Buttons zeigen“.
-- **SSH-Verbindungen:** gespeichert mit Passwort oder Schlüsseldatei, „Test“-
-  Login, Umbenennen wirkt auf alle Buttons. Passwörter verlassen das Backend
-  nie. Fehlt eine Verbindung (z. B. nach einem Import), fragt der erste
-  Klick einmal danach.
-- **Aussehen:** Automatisch (folgt dem System), Grün, Blau, Orange, Pink,
-  Hell, Hell-Orange. Unter macOS mit Vibrancy (der Desktop scheint
-  weichgezeichnet durch) und in das Fenster integrierter Titelleiste.
-- **Import/Export** des Setups (wählbare Bereiche, Passwörter optional),
-  Update-Hinweis bei neuen Releases.
+<table>
+<tr>
+<td width="50%" valign="top">
 
-## Starten aus dem Quellcode
+### Buttons für deine Befehle
 
-Voraussetzung: Python ≥ 3.12.
+Label, Ziel (lokal oder SSH), Ordner und Befehl, mit Live-Vorschau der Zeile,
+die tatsächlich ausgeführt wird. Sortieren per Drag & Drop.
+
+- **Terminal-Modus:** eine eigene Shell pro Button. Erneutes Drücken führt
+  den Befehl dort erneut aus, auf Wunsch mit Ctrl-C davor.
+- **Hintergrund-Modus:** lokal als Kindprozess, per SSH mit `nohup`.
+- **Der Pfeil** im Button startet den Befehl und öffnet sofort sein Terminal.
+- Läuft etwas, zeigt die Zeile einen grünen Punkt und einen Stopp-Button.
+
+</td>
+<td width="50%" valign="top">
+<img src="docs/images/editor.png" alt="Der Editor eines Buttons">
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/images/settings.png" alt="Die Einstellungen mit der Theme-Auswahl">
+</td>
+<td width="50%" valign="top">
+
+### Rechner im Blick
+
+Oben im Fenster steht jeder Begleitcomputer als eigene Karte mit Status
+(Online mit Latenz, Checking, Offline). Ein Klick auf die Karte einer
+SSH-Verbindung öffnet direkt eine Shell darauf.
+
+- Jede gespeicherte SSH-Verbindung lässt sich mit einem Schalter oben anzeigen.
+- Reine Ping-Rechner (Router, Funkstrecke) gehen auch.
+- **Filter:** blendet aus, was gerade offline ist, Buttons und Karten.
+- Gepingt wird nur, was oben angezeigt wird.
+
+</td>
+</tr>
+</table>
+
+### Sieht aus wie zu Hause
+
+<p align="center">
+  <img src="docs/images/themes.png" alt="Cmdly in den Themes Blau, Grün und Hell-Orange">
+</p>
+
+Sieben Themes (Automatisch, Blau, Grün, Orange, Pink, Hell, Hell-Orange). Unter
+macOS scheint der Desktop weichgezeichnet durch das Fenster (Vibrancy), die
+Titelleiste ist Teil des Fensters, Terminals sind aus Milchglas.
+
+### Und außerdem
+
+- **Terminal-Fenster** wie in Corvus: rahmenlos, frei platzierbar, über Cmdly
+  anheftbar, zurück ins Hauptfenster ziehbar. Der Verlauf bleibt beim erneuten
+  Öffnen erhalten.
+- **Sichere Verbindungen:** Passwörter bleiben im Backend
+  (`~/.cmdly/config.json`, nur für dich lesbar) und erreichen die Oberfläche nie.
+  Änderst du eine Verbindung, ziehen alle Buttons und Karten mit.
+- **Import/Export** des ganzen Setups, Passwörter optional.
+- **Update-Hinweis**, sobald ein neues Release erscheint.
+
+## Installation
+
+Fertige Builds für macOS (`.dmg`) und Linux (`.AppImage`) liegen unter
+[**Releases**](https://github.com/M-BSquared/Cmdly/releases).
+
+Oder direkt aus dem Quellcode (Python ≥ 3.12):
 
 ```bash
+git clone https://github.com/M-BSquared/Cmdly.git
+cd Cmdly
 ./run.sh
 ```
 
-Der erste Start legt `.venv` an und installiert die Gruppe `dev` aus
+Der erste Start legt `.venv` an und installiert die Abhängigkeiten aus
 `pyproject.toml`; danach startet Cmdly ohne Netzwerk. Unter Linux trägt
 `./run.sh --desktop-entry` den Checkout ins App-Menü ein.
 
-Die Einstellungen liegen in `~/.cmdly/config.json` (nur für dich lesbar).
-Eine Konfiguration der alten PySide-Widget-Version wird beim ersten Start
-automatisch übernommen.
+## In drei Schritten
 
-## Bauen
+1. **Verbindung anlegen:** Settings → SSH → *Add a connection*. Mit *Test*
+   prüfst du den Login, mit *Show in the main window* erscheint der Rechner oben.
+2. **Button anlegen:** *Add* im Hauptfenster, Ziel und Befehl eintragen.
+3. **Drücken.** Mit dem Pfeil im Button öffnet sich gleich das Terminal dazu.
+
+<details>
+<summary><strong>Selbst bauen</strong></summary>
 
 | Plattform | Befehl | Ergebnis |
 | --- | --- | --- |
@@ -83,18 +141,24 @@ automatisch übernommen.
   Application: …"` wird richtig signiert.
 - Das AppImage nutzt das aktuelle
   [`appimagetool`](https://github.com/AppImage/appimagetool) (gepinnt auf
-  1.9.1, `CMDLY_APPIMAGETOOL_VERSION=continuous` für den neuesten Build)
-  mit statischer Runtime, also ohne `libfuse2`-Abhängigkeit auf dem
-  Zielsystem.
-- Ein AppImage läuft nur auf Systemen mit mindestens der glibc des
-  Build-Systems. Weil die PySide6-Wheels glibc 2.34 (x86_64) bzw. 2.39
-  (aarch64) voraussetzen, wird x86_64 auf Ubuntu 22.04 und aarch64 auf
-  Ubuntu 24.04 gebaut – `tools/appimage-in-docker.sh` macht genau das.
+  1.9.1, `CMDLY_APPIMAGETOOL_VERSION=continuous` für den neuesten Build) mit
+  statischer Runtime, also ohne `libfuse2` auf dem Zielsystem.
+- Ein AppImage läuft nur mit mindestens der glibc des Build-Systems. Die
+  PySide6-Wheels setzen glibc 2.34 (x86_64) bzw. 2.39 (aarch64) voraus, daher
+  wird x86_64 auf Ubuntu 22.04 und aarch64 auf Ubuntu 24.04 gebaut;
+  `tools/appimage-in-docker.sh` macht genau das.
 - `tools/qt_bundle.py` entfernt alle Qt-Module, die Cmdly nicht lädt
-  (≈ ein Drittel von PySide6), und bricht ab, wenn danach eine Bibliothek
+  (etwa ein Drittel von PySide6), und bricht ab, wenn danach eine Bibliothek
   fehlen würde.
 
-## Struktur
+</details>
+
+<details>
+<summary><strong>Aufbau</strong></summary>
+
+Ein Python-Backend (`ThreadingHTTPServer`, nur auf 127.0.0.1) und eine
+Web-Oberfläche in einem PySide6/QtWebEngine-Fenster, wie in Corvus GCS.
+Terminals laufen über eine WebSocket pro Fenster und xterm.js.
 
 ```
 cmdly/          Python: Backend (server.py), Qt-Fenster (app.py),
@@ -105,14 +169,35 @@ src/            Web-Oberfläche
   js/           ui.js (Komponenten), store/launch/shelf/companion/settings …
   vendor/       xterm.js, Lucide, Schriften (offline)
 assets/         App-Icon
-tools/          make_icon.py, qt_bundle.py, appimage-in-docker.sh
+docs/images/    die Bilder dieser README
+tools/          make_icon.py, readme_shots.py (README-Bilder und Social Preview),
+                qt_bundle.py, appimage-in-docker.sh
 tests/          pytest (tests/test_*.py) und Node (tests/test_frontend_*.js)
 ```
 
-## Tests
+</details>
+
+<details>
+<summary><strong>Entwickeln und testen</strong></summary>
 
 ```bash
 .venv/bin/python -m pytest
 for f in tests/test_frontend_*.js; do node "$f"; done
 .venv/bin/ruff check cmdly tests tools
 ```
+
+Die Bilder dieser README erzeugt `tools/readme_shots.py`: Es startet Cmdly mit
+einem erfundenen Demo-Setup in einem temporären `CMDLY_HOME`, lässt Chromium
+jedes Fenster in doppelter Auflösung zeichnen und legt es mit Schatten und
+Milchglas auf ein generiertes Hintergrundbild. Es nimmt nichts vom Bildschirm
+auf und zeigt keine eigenen Rechner oder Buttons.
+
+```bash
+.venv/bin/python tools/readme_shots.py            # alle Bilder
+.venv/bin/python tools/readme_shots.py hero       # nur einzelne
+```
+
+Die Einstellungen liegen in `~/.cmdly/config.json`; die Konfiguration der
+alten PySide-Widget-Version wird beim ersten Start übernommen.
+
+</details>
