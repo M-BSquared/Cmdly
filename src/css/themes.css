@@ -1,0 +1,394 @@
+/*
+  Cmdly — design tokens and the colour themes.
+
+  Loaded first: every colour, radius, shadow, blur and spacing in the app is a
+  token defined here, and nothing else defines one. A theme switch is one
+  attribute on <html> (data-theme, written by js/theme.js); "auto" resolves to
+  green or light from the system's appearance before it is written.
+
+  Bare :root carries the light theme in full, so the page is styled before any
+  script runs. The four dark themes share one block restating the whole dark
+  stack (with green's accent, green being the reference theme and the colour
+  of the app icon), and blue/pink/orange override only their accent family.
+
+  One material for every surface
+  ------------------------------
+  Translucency is one recipe, not one per component: a tint of --glass-rgb at
+  one of three strengths (--glass-thin / --glass / --glass-thick), the same
+  hairline (--hairline) and the same blur (--blur). A card, a popover, a
+  modal and a terminal's title bar are that one material at different
+  thicknesses, which is what makes them read as one substance.
+
+  Vibrancy (macOS)
+  ----------------
+  On macOS the window itself is see-through and the system blurs the desktop
+  behind it (NSVisualEffectView, cmdly/native_window.py), the way Finder's
+  sidebar or Notes' list does. The page then paints no background of its own:
+  :root.vibrant swaps --window-bg for a light veil of the theme's ground, so
+  the blurred desktop tints the whole window, and the surfaces on top stay the
+  one material. Without vibrancy (Linux, Windows, the switch off, or "reduce
+  transparency") --window-bg is the solid ground and nothing changes shape.
+
+  Channel tokens (--glass-rgb, --tint-rgb, --input-rgb) are bare "R G B"
+  triples so a rule picks its own alpha: rgb(var(--glass-rgb) / 0.6).
+*/
+
+/* ===================================================================
+   Structural tokens — the same in every theme
+   =================================================================== */
+:root {
+  /* Generous, continuous radii: Apple's rounded-rectangle language. */
+  --radius-xs: 7px;
+  --radius-sm: 10px;
+  --radius-btn: 10px;
+  --radius: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+
+  --dot-size: 7px;
+  --dot-halo:
+    0 0 0 2px color-mix(in srgb, currentColor 20%, transparent),
+    0 0 6px color-mix(in srgb, currentColor 50%, transparent);
+  --dot-ring: 0 0 0 2px color-mix(in srgb, currentColor 20%, transparent);
+
+  /* Spacing on a 4 px grid. */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-14: 14px;
+  --space-16: 16px;
+  --space-18: 18px;
+  --space-20: 20px;
+  --space-24: 24px;
+
+  --text-3xs: 9px;
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-xs-plus: 11.5px;
+  --text-sm: 12px;
+  --text-md: 13px;
+  --text-lg: 14px;
+  --text-xl: 15px;
+  --text-2xl: 17px;
+
+  /* The window's own header: traffic lights on macOS, drag area everywhere. */
+  --top-h: 52px;
+  /* Room the macOS traffic lights take at the header's start. */
+  --traffic-w: 0px;
+
+  --mono: "JetBrains Mono", "SF Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+  --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
+
+  /* No interface scale in Cmdly; ui.js and the window frames still read it. */
+  --ui-scale: 1;
+  --vw: 1vw;
+  --vh: 1vh;
+
+  /* Motion: one spring-like curve and three durations for everything. */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 320ms;
+
+  /* Stacking: the app, its floating terminals, then anything that must be
+     answered first, then menus mounted on <body>, then toasts. */
+  --z-header: 30;
+  --z-term-window: 90;
+  --z-modal: 100;
+  --z-dropdown: 150;
+  --z-toast: 200;
+
+  /* Toast and notification column geometry (components.css). */
+  --notif-gutter: 9px;
+  --notif-icon: 20px;
+  --notif-icon-svg: 16px;
+  --notif-gap: 14px;
+  --notif-pad-y: 10px;
+  --notif-pad-right: 13px;
+  --notif-mark: 3px;
+  --notif-mark-gap: 4px;
+  --notif-mark-fill: 0.38;
+  --notif-dismiss: 24px;
+}
+
+/* ===================================================================
+   LIGHT — white and graphite. Also the complete light base light-orange
+   builds on.
+   =================================================================== */
+:root {
+  color-scheme: light;
+
+  --bg: #F2F3F6;
+  --surface-1: #FFFFFF;
+  --surface-2: #F3F4F7;
+  --surface-3: #E9EBF0;
+  --surface-hover: #E2E5EB;
+  --surface-active: #D6DAE2;
+
+  --accent: #1C1F25;
+  --accent-dim: rgba(28, 31, 37, 0.10);
+  --accent-bright: #343A44;
+  --accent-dark: #E2E5EB;
+  --accent-hover: #2C313A;
+  --accent-pressed: #0F1115;
+  --on-accent: #FFFFFF;
+
+  --healthy: #11894F;
+  --healthy-dark: #D8F1E3;
+  --healthy-bright: #0B7343;
+  --warning: #B07600;
+  --warning-dark: #FAEDCC;
+  --notice: #CE5E00;
+  --critical: #D62B26;
+  --critical-dark: #FBDCDB;
+  --critical-bright: #B32020;
+  --nav: #0B6FC0;
+  --nav-dark: #D8E9F8;
+  --nav-bright: #085A9C;
+  --nav-dim: rgba(11, 111, 192, 0.14);
+
+  --text-1: #15171C;
+  --text-2: #4C535D;
+  --text-3: #7A828C;
+  --text-disabled: #A9B0B9;
+  --text-inverted: #FFFFFF;
+
+  --border: rgba(0, 0, 0, 0.10);
+  --border-soft: rgba(0, 0, 0, 0.06);
+  --border-strong: rgba(0, 0, 0, 0.18);
+
+  --terminal-bg: #FFFFFF;
+  --terminal-text: #1C1F25;
+  --terminal-muted: #7A828C;
+  --terminal-cmd: #11894F;
+  --ssh-bg: #FBFBFD;
+
+  --glass-rgb: 255 255 255;
+  --input-rgb: 255 255 255;
+  --tint-rgb: 0 0 0;
+  --ground-rgb: 242 243 246;
+
+  /* The one material: three thicknesses of the same glass. */
+  --glass-thin: rgb(var(--glass-rgb) / 0.55);
+  --glass: rgb(var(--glass-rgb) / 0.72);
+  --glass-thick: rgb(var(--glass-rgb) / 0.86);
+  /* A sheet (dialog) sits over live content: nearly solid, so what is behind
+     it never reads through. */
+  --glass-sheet: rgb(var(--glass-rgb) / 0.97);
+  --hairline: rgb(var(--tint-rgb) / 0.08);
+  --hairline-strong: rgb(var(--tint-rgb) / 0.14);
+  /* The inner top highlight glass has on Apple platforms. */
+  --sheen: inset 0 1px 0 rgb(255 255 255 / 0.65);
+  --scrim: rgba(20, 24, 32, 0.28);
+  --blur: blur(30px) saturate(180%);
+  --blur-soft: blur(22px) saturate(170%);
+  --blur-fine: blur(12px) saturate(140%);
+
+  /* A filled tile (a shelf button, the companion card): the accent from edge
+     to edge, with the text, icons and washes that sit on it. */
+  --tile: var(--accent);
+  --tile-hover: var(--accent-hover);
+  --tile-shadow: 0 1px 2px rgb(20 24 32 / 0.18);
+  --on-tile: var(--on-accent);
+  --on-tile-dim: color-mix(in srgb, var(--on-accent) 72%, transparent);
+  --tile-wash: color-mix(in srgb, var(--on-accent) 16%, transparent);
+  --tile-wash-strong: color-mix(in srgb, var(--on-accent) 26%, transparent);
+
+  --panel-fill: var(--glass);
+  --panel-fill-hover: var(--glass-thick);
+  --panel-hairline: var(--hairline);
+  --panel-hairline-hover: var(--hairline-strong);
+  --panel-wash: rgb(var(--tint-rgb) / 0.045);
+
+  /* The window's ground: solid, or (vibrant) a veil over the system blur. */
+  --window-bg: linear-gradient(180deg, #F6F7F9 0%, #EEF0F4 100%);
+  --window-veil: rgb(var(--ground-rgb) / 0.06);
+
+  --shadow: 0 6px 20px rgba(20, 24, 32, 0.10);
+  --shadow-soft: 0 1px 2px rgba(20, 24, 32, 0.06), 0 4px 14px rgba(20, 24, 32, 0.06);
+  --shadow-pop: 0 10px 30px rgba(20, 24, 32, 0.14), 0 2px 6px rgba(20, 24, 32, 0.06);
+  --shadow-glass: 0 8px 32px rgba(20, 24, 32, 0.12);
+  --shadow-modal: 0 24px 64px rgba(20, 24, 32, 0.22), 0 4px 14px rgba(20, 24, 32, 0.08);
+}
+
+/* ===================================================================
+   LIGHT ORANGE — the light base with a burnt-orange accent.
+   =================================================================== */
+:root[data-theme="light-orange"] {
+  --accent: #CE5E00;
+  --accent-dim: rgba(206, 94, 0, 0.14);
+  --accent-bright: #B04E00;
+  --accent-dark: #FCE7D3;
+  --accent-hover: #B85300;
+  --accent-pressed: #9E4700;
+  --terminal-cmd: #BD5500;
+}
+
+/* ===================================================================
+   DARK BASE — green, blue, pink and orange. Green's accent is the app
+   icon's: the neon kangaroo on graphite.
+   =================================================================== */
+:root[data-theme="green"],
+:root[data-theme="blue"],
+:root[data-theme="pink"],
+:root[data-theme="orange"] {
+  color-scheme: dark;
+
+  --bg: #0E1013;
+  --surface-1: #15181D;
+  --surface-2: #1A1E24;
+  --surface-3: #21262D;
+  --surface-hover: #272D35;
+  --surface-active: #2F3640;
+
+  --accent: #5CCB7A;
+  --accent-dim: rgba(92, 203, 122, 0.16);
+  --accent-bright: #7FE09A;
+  --accent-dark: #173A25;
+  --accent-hover: #6DD688;
+  --accent-pressed: #45AA62;
+  --on-accent: #07140C;
+
+  --healthy: #45D483;
+  --healthy-dark: #183A2A;
+  --healthy-bright: #63E89A;
+  --warning: #F5C842;
+  --warning-dark: #403716;
+  --notice: #F58A2B;
+  --critical: #FF5A55;
+  --critical-dark: #421D1C;
+  --critical-bright: #FF7672;
+  --nav: #4CC9FF;
+  --nav-dark: #17394A;
+  --nav-bright: #7DDEFF;
+  --nav-dim: rgba(76, 201, 255, 0.18);
+
+  --text-1: #F3F5F7;
+  --text-2: #A9B0BA;
+  --text-3: #6E7782;
+  --text-disabled: #4A525C;
+  --text-inverted: #0B0E12;
+
+  --border: rgba(255, 255, 255, 0.10);
+  --border-soft: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.17);
+
+  --terminal-bg: #0B0D10;
+  --terminal-text: #D9DEE4;
+  --terminal-muted: #707983;
+  --terminal-cmd: #7FE09A;
+  --ssh-bg: #0A0C0F;
+
+  --glass-rgb: 28 32 38;
+  --input-rgb: 10 12 15;
+  --tint-rgb: 255 255 255;
+  --ground-rgb: 14 16 19;
+
+  --glass-thin: rgb(var(--glass-rgb) / 0.42);
+  --glass: rgb(var(--glass-rgb) / 0.58);
+  --glass-thick: rgb(var(--glass-rgb) / 0.78);
+  --glass-sheet: rgb(var(--glass-rgb) / 0.96);
+  --hairline: rgb(var(--tint-rgb) / 0.09);
+  --hairline-strong: rgb(var(--tint-rgb) / 0.06);
+  --sheen: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --scrim: rgba(0, 0, 0, 0.45);
+
+  --panel-wash: rgb(var(--tint-rgb) / 0.06);
+
+  --window-bg: radial-gradient(120% 80% at 50% -10%, #1A2019 0%, #0E1013 55%), #0E1013;
+  --window-veil: rgb(var(--ground-rgb) / 0.21);
+
+  --shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 14px rgba(0, 0, 0, 0.25);
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-modal: 0 28px 70px rgba(0, 0, 0, 0.55), 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+:root[data-theme="blue"] {
+  --accent: #3B9EFF;
+  --accent-dim: rgba(59, 158, 255, 0.16);
+  --accent-bright: #6FBCFF;
+  --accent-dark: #14304F;
+  --accent-hover: #55ADFF;
+  --accent-pressed: #2B7FD4;
+  --on-accent: #FFFFFF;
+  --nav: #35D6C4;
+  --terminal-cmd: #6FBCFF;
+  --window-bg: radial-gradient(120% 80% at 50% -10%, #152030 0%, #0E1013 55%), #0E1013;
+}
+
+:root[data-theme="pink"] {
+  --accent: #F0509B;
+  --accent-dim: rgba(240, 80, 155, 0.16);
+  --accent-bright: #FF7DB8;
+  --accent-dark: #4A1733;
+  --accent-hover: #FF66A9;
+  --accent-pressed: #C93F7F;
+  --on-accent: #FFFFFF;
+  --terminal-cmd: #FF7DB8;
+  --window-bg: radial-gradient(120% 80% at 50% -10%, #2A1520 0%, #0E1013 55%), #0E1013;
+}
+
+:root[data-theme="orange"] {
+  --accent: #F58A2B;
+  --accent-dim: rgba(245, 138, 43, 0.16);
+  --accent-bright: #FFAA5C;
+  --accent-dark: #4A2A10;
+  --accent-hover: #FF9C42;
+  --accent-pressed: #CC7020;
+  --on-accent: #1A0E03;
+  --warning: #FFD966;
+  --warning-dark: #46400F;
+  --terminal-cmd: #FFAA5C;
+  --window-bg: radial-gradient(120% 80% at 50% -10%, #2A1D12 0%, #0E1013 55%), #0E1013;
+}
+
+/* Vibrancy: the system blur is the window's ground. Thinner glass on top of
+   it, so the desktop's colour carries through the whole window as it does in
+   Apple's own apps. */
+:root.vibrant {
+  --window-bg: var(--window-veil);
+}
+:root.vibrant[data-theme="green"],
+:root.vibrant[data-theme="blue"],
+:root.vibrant[data-theme="pink"],
+:root.vibrant[data-theme="orange"] {
+  --glass-thin: rgb(var(--glass-rgb) / 0.35);
+  --glass: rgb(var(--glass-rgb) / 0.52);
+  --glass-thick: rgb(var(--glass-rgb) / 0.78);
+  --hairline: rgb(var(--tint-rgb) / 0.16);
+  --hairline-strong: rgb(var(--tint-rgb) / 0.24);
+  --sheen: inset 0 1px 0 rgb(255 255 255 / 0.14);
+}
+:root.vibrant:not([data-theme="green"]):not([data-theme="blue"]):not([data-theme="pink"]):not([data-theme="orange"]) {
+  --glass-thin: rgb(var(--glass-rgb) / 0.42);
+  --glass: rgb(var(--glass-rgb) / 0.62);
+  --glass-thick: rgb(var(--glass-rgb) / 0.82);
+  --hairline: rgb(var(--tint-rgb) / 0.14);
+  --hairline-strong: rgb(var(--tint-rgb) / 0.22);
+  --sheen: inset 0 1px 0 rgb(255 255 255 / 0.9);
+  /* None from the page: a light, see-through colour comes out white in the
+     translucent window. The light tint is the blur's own (cmdly/app.py). */
+  --window-veil: transparent;
+  --shadow-soft: 0 1px 2px rgba(20, 24, 32, 0.14), 0 6px 18px rgba(20, 24, 32, 0.12);
+}
+
+/* Reduce transparency (System Settings > Accessibility): solid everywhere. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-thin: var(--surface-1);
+    --glass: var(--surface-1);
+    --glass-thick: var(--surface-1);
+    --glass-sheet: var(--surface-1);
+    --blur: none;
+    --blur-soft: none;
+    --blur-fine: none;
+  }
+  :root.vibrant { --window-bg: var(--bg); }
+}

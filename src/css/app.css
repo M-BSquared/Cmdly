@@ -1,0 +1,420 @@
+/*
+  Cmdly — the views: the companion card, the shelf, the editor, the
+  settings sheet and the dialogs.
+
+  Every surface here is the one material from themes.css (--glass and its
+  thicknesses, --hairline, --sheen, --blur). Spacing is the 4 px grid:
+  16 px gutters to the window, 12 px between cards, 8 px inside a row, 4 px
+  between a caption and its control.
+*/
+
+/* ----- shared surface -------------------------------------------------- */
+.surface,
+.group,
+.editor-bar,
+.empty-state {
+  background: var(--glass);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--sheen), var(--shadow-soft);
+  backdrop-filter: var(--blur-soft);
+  -webkit-backdrop-filter: var(--blur-soft);
+}
+
+/* ----- filled bars -------------------------------------------------------------
+   A shelf button and the companion's bar are plain accent fills: one flat
+   colour, a hairline of shadow, text and icons in --on-tile. The tools beside
+   them (edit, open, stop) stay on the window, in grey. */
+.launch,
+.comp-bar {
+  background: var(--tile);
+  color: var(--on-tile);
+  border-radius: var(--radius-btn);
+  box-shadow: var(--tile-shadow);
+}
+
+/* ----- companion card ---------------------------------------------------- */
+.companion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.comp-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+.comp-bar {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  height: 40px;
+  padding-right: var(--space-10);
+}
+.comp-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  padding: 0 var(--space-8) 0 var(--space-12);
+  border-radius: var(--radius-btn);
+  text-align: left;
+  transition: background var(--dur-fast) var(--ease);
+}
+/* Nothing to watch yet: the bar is a plain solid button, not an accent fill
+   and not glass, and its text and washes follow the theme's own ink. */
+.comp-card[data-state="unset"] .comp-bar {
+  --on-tile: var(--text-1);
+  --on-tile-dim: var(--text-3);
+  --tile-wash: rgb(var(--tint-rgb) / 0.06);
+  --tile-wash-strong: rgb(var(--tint-rgb) / 0.12);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  box-shadow: 0 1px 2px rgb(20 24 32 / 0.08);
+}
+.comp-main:hover { background: var(--tile-wash); }
+.comp-main.is-static { cursor: default; }
+.comp-main.is-static:hover { background: none; }
+.comp-main.is-static:active { transform: none; }
+.comp-main:active { transform: scale(0.99); }
+.comp-icon { flex: 0 0 auto; display: grid; place-items: center; color: var(--on-tile); }
+.comp-card[data-state="unset"] .comp-host { font-family: var(--sans); }
+.comp-text { display: flex; align-items: baseline; gap: var(--space-8); min-width: 0; flex: 1 1 auto; }
+.comp-name {
+  font-size: var(--text-md); font-weight: 600; color: var(--on-tile);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto;
+}
+.comp-host {
+  font-family: var(--mono); font-size: var(--text-xs); color: var(--on-tile-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.comp-chev { color: var(--on-tile-dim); flex: 0 0 auto; }
+
+.comp-pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--on-tile);
+  white-space: nowrap;
+}
+/* The verdict is the dot's colour; the label stays readable on any accent. */
+.comp-pill .status-dot { box-shadow: 0 0 0 2px var(--tile-wash-strong); }
+.comp-pill[data-level="healthy"] .status-dot { background: var(--healthy-bright); }
+.comp-pill[data-level="critical"] .status-dot { background: var(--critical-bright); }
+.comp-pill[data-level="warning"] .status-dot { background: var(--warning); }
+.comp-pill:not([data-level]) .status-dot { background: var(--on-tile-dim); }
+.comp-rtt { font-family: var(--mono); font-weight: 500; opacity: 0.85; }
+.comp-tools { display: flex; align-items: center; gap: var(--space-2); flex: 0 0 auto; }
+.comp-tools .icon-btn { width: 32px; height: 32px; }
+.comp-menu { min-width: 260px; }
+
+/* A narrow window: the round trip and the chevron go first. */
+@media (max-width: 480px) {
+  .comp-rtt, .comp-chev { display: none; }
+}
+
+/* ----- section heads --------------------------------------------------- */
+.section-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-10) 0 var(--space-10);
+  margin: 0 calc(-1 * var(--space-4));
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+.section-title {
+  font-family: var(--display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-1);
+}
+.section-count {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-3);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(var(--tint-rgb) / 0.06);
+}
+.section-head .icon-btn { width: 32px; height: 32px; }
+.section-head .icon-btn.active { background: var(--accent-dim); color: var(--accent-bright); }
+.add-btn { border-radius: 999px !important; padding-left: 12px !important; padding-right: 14px !important; }
+
+/* ----- the shelf ----------------------------------------------------------- */
+.shelf { display: flex; flex-direction: column; gap: var(--space-8); }
+
+.shelf-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  transition: opacity var(--dur) var(--ease);
+}
+.shelf-row.is-new { animation: row-in var(--dur-slow) var(--ease-out) both; }
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+.shelf-row.is-dragging { opacity: 0.45; }
+.shelf-row.drop-before { box-shadow: 0 -2px 0 0 var(--accent); }
+.shelf-row.drop-after { box-shadow: 0 2px 0 0 var(--accent); }
+
+.launch {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  transition: background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.launch:hover { background: var(--tile-hover); }
+.launch:active { transform: scale(0.99); }
+.launch.is-busy { opacity: 0.7; cursor: progress; }
+.launch-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  padding: 0 var(--space-8) 0 var(--space-14);
+  text-align: left;
+  border-radius: var(--radius-btn);
+}
+.launch-label {
+  flex: 1 1 auto; min-width: 0;
+  font-size: var(--text-md); font-weight: 600; color: var(--on-tile);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.launch-where { flex: 0 0 auto; color: var(--on-tile-dim); }
+/* Starts the command and shows its terminal. */
+.launch-go {
+  flex: 0 0 auto;
+  width: 32px; height: 32px;
+  margin-right: var(--space-4);
+  color: var(--on-tile-dim);
+}
+.launch-go:hover { background: var(--tile-wash); color: var(--on-tile); }
+.launch-go svg { width: 16px; height: 16px; }
+
+.row-tools { display: flex; align-items: center; gap: var(--space-2); flex: 0 0 auto; padding-right: var(--space-2); }
+.row-tools .icon-btn { width: 32px; height: 32px; }
+.row-tools .icon-btn svg { width: 16px; height: 16px; }
+.row-stop { color: var(--critical) !important; }
+.row-stop:hover { background: color-mix(in srgb, var(--critical) 14%, transparent) !important; }
+.row-stop svg { fill: currentColor; width: 12px !important; height: 12px !important; }
+.row-error { color: var(--warning); width: 26px; height: 26px; }
+.row-error svg { width: 16px; height: 16px; }
+.run-dot {
+  width: 8px; height: 8px; margin: 0 var(--space-6);
+  border-radius: 50%;
+  background: var(--healthy);
+  box-shadow: var(--dot-halo);
+  color: var(--healthy);
+  animation: run-pulse 2s ease-in-out infinite;
+}
+@keyframes run-pulse { 50% { opacity: 0.45; } }
+
+.shelf-note {
+  display: flex; gap: var(--space-8); align-items: flex-start;
+  margin-top: var(--space-12);
+  padding: var(--space-10) var(--space-12);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  color: var(--text-2);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 25%, transparent);
+}
+.shelf-note svg { color: var(--warning); flex: 0 0 auto; margin-top: 1px; }
+
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: var(--space-8);
+  padding: var(--space-24) var(--space-20);
+  border-radius: var(--radius-xl);
+}
+.empty-art {
+  width: 56px; height: 56px; border-radius: 18px;
+  display: grid; place-items: center;
+  color: var(--accent-bright);
+  background: var(--accent-dim);
+  margin-bottom: var(--space-4);
+}
+.empty-title { font-size: var(--text-xl); font-weight: 650; }
+.empty-text { font-size: var(--text-md); color: var(--text-2); max-width: 340px; margin-bottom: var(--space-8); }
+
+/* ----- the editor ------------------------------------------------------------- */
+.editor-head { gap: var(--space-4); position: static; }
+.back-btn { margin-left: calc(-1 * var(--space-6)); }
+.editor { display: flex; flex-direction: column; gap: var(--space-12); padding-bottom: var(--space-12); }
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding: var(--space-14) var(--space-16) var(--space-16);
+  border-radius: var(--radius-lg);
+}
+.group-title {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.field-row { display: flex; gap: var(--space-10); }
+.field-row > .field { flex: 1 1 0; min-width: 0; }
+.ssh-box { display: flex; flex-direction: column; gap: var(--space-12); }
+.inset-group {
+  display: flex; flex-direction: column; gap: var(--space-12);
+  padding: var(--space-12);
+  border-radius: var(--radius);
+  background: rgb(var(--tint-rgb) / 0.035);
+  border: 1px solid var(--hairline);
+}
+.conn-form { display: flex; flex-direction: column; gap: var(--space-12); }
+
+.preview {
+  display: flex; align-items: flex-start; gap: var(--space-8);
+  padding: var(--space-10) var(--space-12);
+  border-radius: var(--radius-sm);
+  background: rgb(var(--input-rgb) / 0.55);
+  border: 1px solid var(--hairline);
+  color: var(--accent-bright);
+}
+.preview svg { flex: 0 0 auto; margin-top: 2px; color: var(--text-3); }
+.preview code { font-size: var(--text-sm); word-break: break-all; white-space: pre-wrap; }
+.preview.is-empty { color: var(--text-3); }
+
+/* Always in reach at the bottom of the view, however long the form. */
+.editor-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-10);
+  border-radius: var(--radius-lg);
+  /* Fully opaque: the form scrolls under it, and its text must not read
+     through the buttons. */
+  background: rgb(var(--glass-rgb));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: var(--sheen), var(--shadow-pop);
+}
+
+.dialog-msg:empty { display: none; }
+.dialog-intro { font-size: var(--text-md); color: var(--text-2); line-height: 1.5; }
+
+/* ----- dialogs: Apple sheet polish ------------------------------------------- */
+.modal {
+  border-radius: var(--radius-xl) !important;
+  padding: var(--space-20) !important;
+  background: var(--glass-sheet) !important;
+  box-shadow: var(--sheen), var(--shadow-modal) !important;
+  animation: sheet-in var(--dur-slow) var(--ease-out) !important;
+}
+.modal { min-width: 0; }
+.modal[data-size="md"] { max-width: 440px; }
+.modal[data-size="lg"] { max-width: 600px; }
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+/* A dialog never reaches into the title bar (the traffic lights sit there on
+   macOS): the overlay's room starts below it. */
+.modal-overlay {
+  padding: var(--top-h) var(--space-16) var(--space-16) !important;
+  /* The one grid column is the overlay's width, never what the dialog's
+     content would like: a long line in a tab must not widen the dialog. */
+  grid-template-columns: minmax(0, 1fr);
+  animation: fade-in var(--dur) var(--ease) !important;
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.modal-title { font-family: var(--display); font-size: var(--text-xl) !important; letter-spacing: -0.01em !important; }
+.modal-body { gap: var(--space-14) !important; }
+.confirm-text { display: flex; flex-direction: column; gap: var(--space-8); color: var(--text-2); line-height: 1.5; }
+.comp-form, .conn-dialog { display: flex; flex-direction: column; gap: var(--space-14); }
+
+/* ----- settings ------------------------------------------------------------------ */
+.settings-overlay .modal { height: min(640px, 100%); }
+.settings { display: flex; flex-direction: column; gap: var(--space-14); min-height: 0; }
+.settings-tabs { width: 100%; }
+.settings-tabs .ui-segment-opt { flex: 1 1 0; justify-content: center; }
+.settings-page { display: flex; flex-direction: column; gap: var(--space-14); animation: fade-in var(--dur) var(--ease); }
+.settings-page > div { display: flex; flex-direction: column; gap: var(--space-14); }
+.settings .group { background: rgb(var(--tint-rgb) / 0.03); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+@media (max-width: 520px) {
+  .settings-tabs .ui-segment-opt span { display: none; }
+}
+
+.list { display: flex; flex-direction: column; border-radius: var(--radius); overflow: hidden; }
+.list-row {
+  display: flex; align-items: center; gap: var(--space-10);
+  padding: var(--space-10) var(--space-8);
+  text-align: left;
+  border-radius: var(--radius-sm);
+  transition: background var(--dur-fast) var(--ease);
+}
+.list-row + .list-row { border-top: 1px solid var(--hairline); border-radius: 0; }
+.list-row:not(.is-static):hover { background: var(--panel-wash); }
+.list-icon {
+  width: 30px; height: 30px; border-radius: 9px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  background: var(--accent-dim); color: var(--accent-bright);
+}
+.list-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.list-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-sub { font-size: var(--text-xs); color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-badge { font-size: var(--text-2xs); color: var(--text-3); white-space: nowrap; }
+.list-chev { color: var(--text-3); flex: 0 0 auto; }
+.list-empty { font-size: var(--text-sm); color: var(--text-3); padding: var(--space-6) 0; }
+.path {
+  font-size: var(--text-sm); color: var(--text-2); word-break: break-all;
+  padding: var(--space-8) var(--space-10); border-radius: var(--radius-sm);
+  background: rgb(var(--input-rgb) / 0.5); border: 1px solid var(--hairline);
+}
+
+.about-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-4); padding: var(--space-8) 0 var(--space-4); }
+.about-icon { width: 88px; height: 88px; margin-bottom: var(--space-8); filter: drop-shadow(0 8px 20px rgb(0 0 0 / 0.3)); }
+.about-name { font-family: var(--display); font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.about-version { font-size: var(--text-sm); color: var(--text-3); }
+.about-tag { font-size: var(--text-md); color: var(--text-2); max-width: 360px; margin-top: var(--space-4); }
+
+/* ----- components, Cmdly's proportions ------------------------------------------ */
+.btn { border-radius: var(--radius-btn); }
+.btn[data-variant="primary"] { color: var(--on-accent); }
+.field { gap: var(--space-6); }
+.field-label { font-size: var(--text-sm); font-weight: 600; color: var(--text-2); letter-spacing: 0; text-transform: none; }
+.field-input, .field-select, .ui-select-trigger { border-radius: var(--radius-sm) !important; }
+.ui-popover { border-radius: var(--radius) !important; max-width: min(300px, calc(100vw - 24px)) !important; padding: 11px 13px !important; }
+.ui-popover-text { font-size: var(--text-sm) !important; white-space: pre-line; }
+.ui-popover-title { font-size: var(--text-sm) !important; }
+.ui-menu { border-radius: var(--radius) !important; }
+.ui-toast { border-radius: var(--radius) !important; }
+.icon-btn { border-radius: 9px; }
+.icon-btn:active { transform: scale(0.94); }
+
+.settings-transfer-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* Slider captions at the very edge must not give a dialog a sideways scroll. */
+.modal-body { overflow-x: hidden; }
+
+/* A narrow window (down to the smallest the app allows): the address and the
+   status word give way before the name does. */
+@media (max-width: 380px) {
+  .comp-host, .comp-pill > span:not(.status-dot):not(.comp-rtt) { display: none; }
+  .view, .companion-wrap { padding-left: var(--space-12); padding-right: var(--space-12); }
+}

@@ -1,0 +1,165 @@
+/*
+  Cmdly — the terminal windows.
+
+  The same frame as Corvus GCS's terminals, in both of its homes: a frame
+  floating over the app (js/float-window.js), and a native window of its own
+  (popout.html, js/popout-page.js), which is the default in the desktop app.
+  Frosted glass unless Settings > Terminals asks for solid ones.
+*/
+
+.ssh-status {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 600;
+  letter-spacing: 0.7px; color: var(--text-3); text-transform: uppercase;
+}
+.ssh-status .dot {
+  width: var(--dot-size); height: var(--dot-size); border-radius: 50%;
+  background: currentColor; box-shadow: var(--dot-ring);
+}
+.ssh-status.connected { color: var(--healthy); }
+.ssh-status.connected .dot { box-shadow: var(--dot-halo); }
+/* On its way: a camera connecting, or live but with no new picture. */
+.ssh-status.pending { color: var(--warning); }
+.ssh-status.pending .dot { box-shadow: var(--dot-halo); }
+.ssh-status[hidden] { display: none; }
+
+.ssh-term {
+  flex: 1; min-height: 160px;
+  background: var(--ssh-bg); border: 1px solid var(--border); border-radius: var(--radius-btn);
+  padding: 8px 4px 8px 10px; overflow: hidden;
+}
+/* xterm sizes itself to this box, so it must have a real height to measure. */
+.ssh-term .xterm { height: 100%; }
+.ssh-term .xterm-viewport { background: transparent !important; }
+.ssh-term .xterm-viewport::-webkit-scrollbar { width: 8px; }
+.ssh-term .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--border); border-radius: 4px;
+}
+
+/* ----- FLOATING TERMINALS ----- */
+/* One window per terminal session, over the whole app. The layer itself is
+   transparent to the pointer, so everything a window is not sitting on keeps
+   working; stacking is DOM order, so raising one is an appendChild and never
+   a z-index race. */
+.term-layer {
+  position: fixed; inset: 0; z-index: var(--z-term-window);
+  pointer-events: none;
+}
+.term-win {
+  position: absolute; pointer-events: auto;
+  display: flex; flex-direction: column; min-width: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius); box-shadow: var(--shadow-modal);
+  overflow: hidden;
+}
+/* While a window is being moved or sized, no part of it selects text — an
+   accidental selection in the terminal would swallow the drag. */
+.term-win.is-dragging, .term-win.is-dragging * { user-select: none; }
+
+.term-win-bar {
+  flex: 0 0 auto; height: 34px; display: flex; align-items: center; gap: 8px;
+  padding: 0 6px 0 10px; cursor: grab;
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border-bottom: 1px solid var(--border);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .term-win-bar {
+    background: var(--surface-2);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+.term-win.is-dragging .term-win-bar { cursor: grabbing; }
+.term-win.is-max .term-win-bar { cursor: default; }
+.term-win-icon { display: grid; place-items: center; color: var(--text-2); flex: 0 0 auto; }
+.term-win-info { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.term-win-name {
+  font-size: 12px; font-weight: 600; color: var(--text-1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.term-win-host {
+  font-size: 10px; color: var(--text-3); font-family: var(--mono);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto;
+}
+.term-win-tools { display: flex; gap: 1px; flex: 0 0 auto; }
+.term-win-tools .icon-btn { width: 24px; height: 24px; }
+/* Disconnect ends a running program; it says so in colour as well as in its
+   tooltip, but only once the pointer is on it. */
+.term-win-disconnect:hover { color: var(--critical); }
+
+/* The terminal fills the frame. .ssh-term carries the xterm styling already;
+   these two only undo the SSH tab's card metrics. */
+.term-win-body { flex: 1; min-height: 0; border: none; border-radius: 0; margin: 0; }
+.term-win-body:not(.ssh-term):not(.video-win-body) { background: var(--surface-2); }
+
+/* Bottom-right size grip: a corner target rather than four edges, because a
+   1px edge is a poor hit area and the window is already resizable to anything
+   useful from one corner. */
+.term-win-grip {
+  position: absolute; right: 0; bottom: 0; width: 16px; height: 16px;
+  cursor: nwse-resize;
+  background:
+    linear-gradient(135deg, transparent 50%, var(--border-strong) 50%, var(--border-strong) 62%,
+      transparent 62%, transparent 74%, var(--border-strong) 74%, var(--border-strong) 86%,
+      transparent 86%);
+}
+.term-win.is-max .term-win-grip { display: none; }
+
+/* ----- POPPED-OUT WINDOWS (popout.html) ----- */
+/* The same frame, filling a window of its own. The operating system moves and
+   sizes this window, so the bar is not a handle and there is no grip. */
+.popout-page .popout-root { position: fixed; inset: 0; }
+.term-win.popout-win {
+  position: absolute; inset: 0; border: none; border-radius: 0; box-shadow: none;
+  background: var(--surface-2);
+}
+.popout-win .term-win-bar { cursor: default; }
+/* In the desktop app the window itself is frameless and see-through, and this
+   page is all of it: the frame as it is in the app, rounded corners and all,
+   and a bar that moves the window. The shadow is the operating system's. */
+:root.native-window, :root.native-window .popout-page { background: transparent; }
+:root.native-window .term-win.popout-win {
+  border: 1px solid var(--border-strong); border-radius: var(--radius);
+}
+:root.native-window .popout-win .term-win-bar { cursor: grab; }
+:root.native-window .popout-win.is-dragging .term-win-bar { cursor: grabbing; }
+:root.native-window .popout-win.is-max { border-radius: 0; }
+:root.native-window .popout-win.is-max .term-win-bar { cursor: default; }
+
+/* A frame whose content has gone on in a window outside the app. */
+.term-win.is-out { visibility: hidden; }
+
+/* Frosted terminals, the default (Settings, "Solid terminals", off). The frame lets
+   what is behind it through, blurred and tinted with the terminal's own
+   ground, and the terminal draws on that. One blur for the whole frame: a
+   second one on the bar would only blur the frame's own tint. In a window of
+   its own the page is see-through and the operating system blurs the desktop
+   behind it (cmdly/app.py), so there the page adds the tint and no blur; the
+   class is only set there once that blur is confirmed (js/popout-page.js). */
+:root.frosted-terminals .term-win--terminal {
+  --frost-tint: 60%;
+  background: color-mix(in srgb, var(--ssh-bg) var(--frost-tint), transparent);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+}
+:root.frosted-terminals .term-win--terminal .term-win-bar {
+  background: rgb(var(--glass-rgb) / 0.35);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+:root.frosted-terminals .term-win--terminal .ssh-term { background: transparent; }
+:root.native-window.frosted-terminals .term-win--terminal {
+  --frost-tint: 48%;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root.frosted-terminals .term-win.term-win--terminal { --frost-tint: 100%; }
+  :root.frosted-terminals .term-win--terminal .term-win-bar { background: var(--surface-2); }
+}
+/* An engine that cannot blur would show the app through sharp: solid instead. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root.frosted-terminals .term-win.term-win--terminal { --frost-tint: 100%; }
+  :root.frosted-terminals .term-win--terminal .term-win-bar { background: var(--surface-2); }
+}

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/png" href="assets/icon.png" />
+<title>Cmdly</title>
+<link rel="stylesheet" href="vendor/fonts.css" />
+<link rel="stylesheet" href="vendor/xterm.css" />
+<link rel="stylesheet" href="css/themes.css" />
+<link rel="stylesheet" href="css/components.css" />
+<link rel="stylesheet" href="css/base.css" />
+<link rel="stylesheet" href="css/app.css" />
+<link rel="stylesheet" href="css/windows.css" />
+<script>
+/* The last theme before first paint, so the window never flashes the wrong
+   colours while the settings load (js/theme.js writes it). */
+(function () {
+  try {
+    var t = localStorage.getItem("cmdly.theme");
+    document.documentElement.setAttribute("data-theme", (t && t !== "light") ? t : (t ? "" : "blue"));
+  } catch (e) {}
+})();
+</script>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="titlebar" id="titlebar">
+    <div class="brand">
+      <span class="brand-name">Cmdly</span>
+    </div>
+  </header>
+  <section class="companion-wrap" aria-label="Companion computer">
+    <div id="companion"></div>
+  </section>
+  <main class="view" id="view" aria-label="Commands"></main>
+  <footer class="statusbar" id="statusbar" aria-live="polite">
+    <div class="statusbar-row">
+      <div class="statusbar-tools">
+        <button type="button" class="icon-btn" id="btn-settings" title="Settings" aria-label="Settings">
+          <i data-lucide="settings" style="width:16px;height:16px"></i>
+        </button>
+        <span id="status-filter"></span>
+      </div>
+      <span class="status-text" id="status-text"></span>
+    </div>
+    <pre class="status-output" id="status-output" hidden></pre>
+  </footer>
+</div>
+<script src="vendor/lucide.min.js" defer></script>
+<script src="js/ui.js" defer></script>
+<script src="js/lazy.js" defer></script>
+<script src="js/api.js" defer></script>
+<script src="js/theme.js" defer></script>
+<script src="js/native.js" defer></script>
+<script src="js/dialogs.js" defer></script>
+<script src="js/ssh-term.js" defer></script>
+<script src="js/float-window.js" defer></script>
+<script src="js/popout.js" defer></script>
+<script src="js/term-window.js" defer></script>
+<script src="js/store.js" defer></script>
+<script src="js/launch.js" defer></script>
+<script src="js/connections.js" defer></script>
+<script src="js/companion.js" defer></script>
+<script src="js/shelf.js" defer></script>
+<script src="js/settings-transfer.js" defer></script>
+<script src="js/settings.js" defer></script>
+<script src="js/update.js" defer></script>
+<script src="js/app.js" defer></script>
+</body>
+</html>

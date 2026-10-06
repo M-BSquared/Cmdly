@@ -1,0 +1,175 @@
+/*
+  Cmdly — the page itself: reset, type, the window's ground and the shell
+  the views sit in. Shared by the main window and a terminal's own window.
+
+  Layout rule: the window is a column of bands that never overlap. The
+  title bar, the companion card and the status line keep their height; the
+  view between them takes the rest and scrolls when there is more than fits.
+  Every band has min-height: 0 where it may shrink, so a short window
+  scrolls instead of pushing one band over the next.
+*/
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+html { background: transparent; }
+body {
+  font-family: var(--sans);
+  font-size: var(--text-md);
+  line-height: 1.4;
+  color: var(--text-1);
+  background: var(--window-bg);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "tnum" 1, "cv11" 1;
+  letter-spacing: -0.01em;
+  transition: background var(--dur-slow) var(--ease);
+}
+button { font-family: inherit; color: inherit; cursor: pointer; background: none; border: none; font-size: inherit; }
+input, select, textarea { font-family: inherit; }
+svg { display: block; }
+img { display: block; }
+code, pre { font-family: var(--mono); }
+::selection { background: var(--accent-dim); }
+[hidden] { display: none !important; }
+.spacer { flex: 1 1 auto; }
+
+/* Thin overlay-style scrollbars, as macOS draws them. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--tint-rgb) / 0.16);
+  border-radius: 6px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--tint-rgb) / 0.28); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 2px; }
+
+/* ----- the shell --------------------------------------------------------- */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease);
+}
+:root.is-ready .app { opacity: 1; }
+
+/* The title bar. On macOS (unified-titlebar) the window's own bar is gone
+   and this is it: the traffic lights sit at its start, and it moves the
+   window when dragged. Elsewhere it is the app's header under the system's
+   title bar. */
+.titlebar {
+  flex: 0 0 auto;
+  height: var(--top-h);
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  padding: 0 var(--space-12) 0 var(--space-16);
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: var(--z-header);
+}
+/* macOS: the bar is the window's own title bar, the height of one with the
+   traffic lights centred in it (their centre is 16 pt from the top), and
+   everything in it on that same centre line. */
+:root.unified-titlebar { --traffic-w: 72px; --top-h: 46px; }
+:root.unified-titlebar .titlebar {
+  align-items: flex-start;
+  padding-top: 1px;
+  padding-left: calc(var(--traffic-w) + var(--space-4));
+  cursor: default;
+}
+:root.unified-titlebar .brand { height: 30px; }
+.brand { display: flex; align-items: center; gap: var(--space-8); min-width: 0; }
+.brand-icon {
+  width: 22px; height: 22px; flex: 0 0 auto;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.25));
+}
+.brand-name {
+  font-family: var(--display);
+  font-size: var(--text-xl);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--text-1);
+}
+.statusbar-row { display: flex; align-items: center; gap: var(--space-8); min-width: 0; }
+.statusbar-tools { display: flex; align-items: center; gap: var(--space-4); flex: 0 0 auto; }
+.statusbar-tools #status-filter { display: contents; }
+.statusbar .icon-btn { width: 30px; height: 30px; color: var(--text-2); }
+.statusbar .icon-btn svg { width: 16px; height: 16px; }
+
+.companion-wrap {
+  flex: 0 1 auto;
+  min-height: 0;
+  /* Many computers scroll here rather than push the shelf away. */
+  max-height: 38%;
+  overflow-y: auto;
+  padding: 0 var(--space-16) var(--space-12);
+}
+
+.view {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 0 var(--space-16) var(--space-16);
+  scroll-padding-bottom: 72px;
+  /* The edge where content scrolls away fades instead of being cut. */
+  mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+}
+
+.statusbar {
+  flex: 0 0 auto;
+  min-height: 30px;
+  max-height: 40%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-16) var(--space-10);
+  border-top: 1px solid var(--hairline);
+}
+.status-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity var(--dur-slow) var(--ease), color var(--dur) var(--ease);
+  min-height: 16px;
+}
+.status-text[data-kind="ok"] { color: var(--healthy); }
+.status-text[data-kind="err"] { color: var(--critical); }
+.status-text.is-fading { opacity: 0.55; color: var(--text-3); }
+.status-output {
+  font-size: var(--text-xs);
+  max-height: 120px;
+  overflow: auto;
+  padding: var(--space-8) var(--space-10);
+  border-radius: var(--radius-sm);
+  background: rgb(var(--input-rgb) / 0.6);
+  border: 1px solid var(--hairline);
+  color: var(--critical);
+  white-space: pre-wrap;
+}
+
+/* ----- a terminal's own window -------------------------------------------- */
+.popout-page { background: var(--surface-2); }
+:root.native-window, :root.native-window body.popout-page { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+}
+
+/* Nothing to show (the filter hid every offline computer): no empty band. */
+.companion-wrap:has(.companion:empty) { display: none; }

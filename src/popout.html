@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/png" href="assets/icon.png" />
+<title>Cmdly</title>
+<!-- A terminal in a window of its own (js/popout.js). The same stylesheets
+     as index.html, so it looks exactly as it does in its frame. -->
+<link rel="stylesheet" href="vendor/fonts.css" />
+<link rel="stylesheet" href="vendor/xterm.css" />
+<link rel="stylesheet" href="css/themes.css" />
+<link rel="stylesheet" href="css/components.css" />
+<link rel="stylesheet" href="css/base.css" />
+<link rel="stylesheet" href="css/windows.css" />
+<script>
+/* The app's theme before first paint, from the storage the app writes. In
+   the desktop app this page is a frameless, see-through window of its own
+   and has to be transparent from the first paint, or its rounded corners
+   would flash up square. */
+(function () {
+  try {
+    var t = localStorage.getItem("cmdly.theme");
+    if (t && t !== "light") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+  if (window.qt && window.qt.webChannelTransport) {
+    document.documentElement.classList.add("native-window");
+  }
+})();
+</script>
+</head>
+<body class="popout-page">
+<div id="popout" class="popout-root"></div>
+<script src="vendor/lucide.min.js" defer></script>
+<script src="js/lazy.js" defer></script>
+<script src="js/ui.js" defer></script>
+<script src="js/ssh-term.js" defer></script>
+<script src="js/float-window.js" defer></script>
+<script src="js/popout.js" defer></script>
+<script src="js/popout-page.js" defer></script>
+</body>
+</html>
