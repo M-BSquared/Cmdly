@@ -1,0 +1,67 @@
+name: build
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install --group pyproject.toml:test --group pyproject.toml:lint
+      - run: ruff check cmdly tests tools
+      - run: python -m pytest
+      - run: for f in tests/test_frontend_*.js; do node "$f"; done
+
+  appimage:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-22.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y squashfs-tools rsync file
+      # The system libraries build-appimage.sh bundles (names differ by release).
+      - run: |
+          for pkg in libsnappy1v5 libminizip1 libminizip1t64 libwebp7 libwebpmux3 libwebpdemux2 \
+                     libsharpyuv0 libopus0 liblcms2-2 libxkbfile1 libxcb-cursor0 libxcb-icccm4 \
+                     libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-util1; do
+            sudo apt-get install -y --no-install-recommends "$pkg" || true
+          done
+      - run: ./build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Cmdly-AppImage-${{ matrix.arch }}
+          path: dist/*.AppImage
+
+  macos:
+    needs: test
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: ./build.sh --dmg --python "$(which python3.12)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Cmdly-macOS
+          path: dist/*.dmg

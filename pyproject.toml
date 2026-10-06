@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+# Tooling-only placeholder. The real version is the VERSION file at the repo
+# root (cmdly/version.py); it is never read from here.
+name = "cmdly"
+version = "0.0.0"
+requires-python = ">=3.12"
+
+# Every Python package Cmdly installs, anywhere, is named here and nowhere
+# else: run.sh (dev venv) and both build scripts read it with
+# `pip install --group pyproject.toml:<group>` (pip >= 25.1).
+[dependency-groups]
+# What the backend and the test suite need: no Qt.
+headless = [
+    # SSH terminals, background runs and the login test.
+    "paramiko>=3.4",
+]
+# The desktop app every packaged build ships. PySide6 (LGPL v3): Essentials
+# carries QtCore/Gui/Widgets, Addons QtWebEngine and QtWebChannel.
+app = [
+    { include-group = "headless" },
+    "PySide6-Essentials>=6.9",
+    "PySide6-Addons>=6.9",
+]
+test = [
+    { include-group = "headless" },
+    "pytest>=8.0",
+]
+lint = ["ruff>=0.5"]
+dev = [
+    { include-group = "app" },
+    { include-group = "test" },
+    { include-group = "lint" },
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["F", "E9", "B", "UP"]
+ignore = ["B904", "B905"]
