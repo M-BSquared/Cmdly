@@ -35,16 +35,17 @@ DEFAULT_THEME = "blue"
 
 # The PySide build's theme ids, and what each became.
 _LEGACY_THEMES = {
-    "tesla_dark": "green", "corvus": "green", "corvus_green": "green",
-    "corvus_blue": "blue", "midnight": "blue", "apple_dark": "blue",
+    "corvus": "green", "corvus_green": "green",
+    "corvus_blue": "blue", "midnight": "blue",
     "corvus_orange": "orange", "corvus_pink": "pink",
     "corvus_light": "light", "light_frosted": "light",
 }
 
 DEFAULT_UI: dict[str, Any] = {
     "theme": DEFAULT_THEME,
-    # macOS: the desktop shows through the window, blurred (NSVisualEffectView).
-    "vibrancy": True,
+    # The frosted window: the desktop shows through it, blurred on macOS
+    # (NSVisualEffectView), tinted by the page's frost on Linux.
+    "frosted_window": True,
     # Terminal windows of frosted glass rather than solid.
     "frosted_terminals": True,
     # Terminals as frames inside the Cmdly window instead of windows of their own.
@@ -79,8 +80,11 @@ def normalize_ui(raw: Any, legacy_theme: Any = None) -> dict[str, Any]:
     theme = _LEGACY_THEMES.get(theme, theme)
     out = dict(DEFAULT_UI)
     out["theme"] = theme if theme in THEMES else DEFAULT_THEME
-    for key in ("vibrancy", "frosted_terminals", "terminals_in_app", "reachable_only"):
+    for key in ("frosted_window", "frosted_terminals", "terminals_in_app", "reachable_only"):
         out[key] = _bool(src.get(key), DEFAULT_UI[key])
+    # An older Cmdly called the frosted window "vibrancy".
+    if "vibrancy" in src and "frosted_window" not in src:
+        out["frosted_window"] = _bool(src.get("vibrancy"), DEFAULT_UI["frosted_window"])
     return out
 
 

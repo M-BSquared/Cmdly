@@ -5,8 +5,8 @@
 The artwork is a JPEG, so the "transparent" checkerboard around the rounded
 square is painted into it. This finds the dark tile (everything darker than
 the checkerboard's lightest grey), crops to it, masks it with the rounded
-square Apple's icon grid uses and centres it on a transparent 1024 px canvas
-with the grid's margin, so the Dock, Finder and a Linux launcher all show the
+square the macOS icon grid uses and centres it on a transparent 1024 px canvas
+with the grid's margin, so the dock, the file manager and a Linux launcher all show the
 tile alone, the same size as every other app icon beside it.
 
 Run it again whenever the artwork changes; the build scripts read the PNG.
@@ -26,7 +26,7 @@ TARGET = ROOT / "assets" / "icon.png"
 TARGET_256 = ROOT / "assets" / "icon-256.png"
 
 CANVAS = 1024
-# Apple's macOS icon grid: an 824 px tile on a 1024 px canvas, corner radius
+# The macOS icon grid: an 824 px tile on a 1024 px canvas, corner radius
 # about 22.5 % of the tile.
 TILE = 824
 RADIUS = 0.225

@@ -96,6 +96,13 @@ def test_a_background_run_without_the_connection_says_what_it_needs(server):
     assert status == 400 and body["needs"] == "connection"
 
 
+def test_the_power_menu_names_its_actions_and_needs_the_connection(server):
+    status, body = request(server, "POST", "/api/ssh/power", {"name": "pi", "action": "explode"})
+    assert status == 400 and body["ok"] is False
+    status, body = request(server, "POST", "/api/ssh/power", {"name": "pi", "action": "shutdown"})
+    assert status == 400 and body["needs"] == "connection" and body["connection"] == "pi"
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="a pseudo-terminal is POSIX only")
 def test_a_local_terminal_session_from_connect_to_disconnect(server):
     status, body = request(server, "POST", "/api/local/connect", {"name": "cmdly/t"})

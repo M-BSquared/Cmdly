@@ -40,7 +40,7 @@ Cmdly.settingsTransfer = (function () {
     { id: "connections", label: "SSH connections",
       hint: "The saved SSH connections the buttons and companions use." },
     { id: "appearance", label: "Appearance",
-      hint: "Theme, vibrancy and how terminal windows open and look." },
+      hint: "Theme, the frosted window and how terminal windows open and look." },
   ];
 
   // ---- browser half ------------------------------------------------------

@@ -27,11 +27,28 @@ def test_popout_keys():
 
 def test_window_support_per_platform():
     mac = app.window_support("cocoa", "darwin")
-    assert mac["vibrancy"] and mac["unified"] and mac["place"] and mac["platform"] == "mac"
+    assert mac["frost"] and mac["unified"] and mac["place"] and mac["platform"] == "mac"
     wayland = app.window_support("wayland", "linux")
-    assert not wayland["place"] and not wayland["pin"] and not wayland["vibrancy"]
+    assert not wayland["place"] and not wayland["pin"] and not wayland["frost"]
     x11 = app.window_support("xcb", "linux")
     assert x11["place"] and x11["pin"] and not x11["frost"] and x11["platform"] == "linux"
+    windows = app.window_support("windows", "win32")
+    assert not windows["frost"] and windows["platform"] == "windows"
+    # Linux has to be asked first whether anything composites (a see-through
+    # window is black without one) before any frost is promised; the blur
+    # behind it is KWin's to give, asked at runtime.
+    assert app.window_support("wayland", "linux", composited=True)["frost"]
+    assert not app.window_support("wayland", "linux", composited=True)["place"]
+    assert app.window_support("xcb", "linux", composited=True)["frost"]
+    assert "vibrancy" not in app.window_support("cocoa", "darwin")
+
+
+def test_x11_effects_is_x11_only():
+    from cmdly.native_window import x11_effects
+
+    assert x11_effects("wayland", "linux") is None
+    assert x11_effects("cocoa", "darwin") is None
+    assert x11_effects("windows", "win32") is None
 
 
 def test_a_window_is_kept_on_its_screen():

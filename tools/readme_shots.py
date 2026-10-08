@@ -64,7 +64,7 @@ DEMO_CONFIG = {
     "connections": [
         {"name": "jetson", "host": "127.0.0.1", "port": 22, "username": "pilot", "password": "demo"},
     ],
-    "ui": {"theme": "blue", "vibrancy": True, "frosted_terminals": True},
+    "ui": {"theme": "blue", "frosted_window": True, "frosted_terminals": True},
     "window": {"width": MAIN_SIZE[0], "height": MAIN_SIZE[1]},
     "updates": {"check": False, "skipped": ""},
 }
@@ -366,21 +366,21 @@ def main(argv: list[str]) -> int:
 
     def render_main(behind: QImage, theme: str = "blue", setup_js: str = "", settle_ms: int = 4000) -> QImage:
         config.update({"ui": dict(config.snapshot()["ui"], theme=theme)})
-        # In a light theme macOS lays its light material and Cmdly's veil
-        # (cmdly/app.py, MAIN_LIGHT_VEIL) over the blur: about this much white.
+        # In a light theme macOS lays its light material and Cmdly's light
+        # tint (cmdly/app.py, MAIN_LIGHT_TINT) over the blur: about this much white.
         if theme.startswith("light"):
             setup_js += """
-              const veil = document.createElement("style");
-              veil.textContent = "body { background: rgb(240 241 245 / 0.72) !important; }";
-              document.head.appendChild(veil);
+              const frost = document.createElement("style");
+              frost.textContent = "body { background: rgb(240 241 245 / 0.72) !important; }";
+              document.head.appendChild(frost);
             """
         js = f"""
-          Cmdly.native.setVibrancy = function () {{}};
-          document.documentElement.classList.add("vibrant");
+          Cmdly.native.setFrost = function () {{}};
+          document.documentElement.classList.add("frosted-window");
           {setup_js}
         """
         return render("/", MAIN_SIZE, behind, js, settle_ms,
-                      "vibrant unified-titlebar platform-mac desktop-app")
+                      "frosted-window unified-titlebar platform-mac desktop-app")
 
     def render_terminal(behind: QImage) -> QImage:
         query = ("kind=terminal&name=cmdly%2Fb_planner&title=Mission+planner&host=this+computer"

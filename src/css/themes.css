@@ -19,15 +19,18 @@
   modal and a terminal's title bar are that one material at different
   thicknesses, which is what makes them read as one substance.
 
-  Vibrancy (macOS)
-  ----------------
+  The frosted window (macOS, Linux)
+  ---------------------------------
   On macOS the window itself is see-through and the system blurs the desktop
-  behind it (NSVisualEffectView, cmdly/native_window.py), the way Finder's
-  sidebar or Notes' list does. The page then paints no background of its own:
-  :root.vibrant swaps --window-bg for a light veil of the theme's ground, so
-  the blurred desktop tints the whole window, and the surfaces on top stay the
-  one material. Without vibrancy (Linux, Windows, the switch off, or "reduce
-  transparency") --window-bg is the solid ground and nothing changes shape.
+  behind it (NSVisualEffectView, cmdly/native_window.py). The page then paints
+  no background of its own: :root.frosted-window swaps --window-bg for the
+  frost's light tint of the theme's ground, so the blurred desktop tints the
+  whole window, and the surfaces on top stay the one material. On Linux the
+  same window is translucent in Qt's own hands (cmdly/app.py): nothing blurs
+  behind it but KWin, so the frost there carries the theme's ground itself —
+  the desktop reads through, never sharp. Without the frost (Windows, the
+  switch off, or "reduce transparency") --window-bg is the solid ground and
+  nothing changes shape.
 
   Channel tokens (--glass-rgb, --tint-rgb, --input-rgb) are bare "R G B"
   triples so a rule picks its own alpha: rgb(var(--glass-rgb) / 0.6).
@@ -37,7 +40,7 @@
    Structural tokens — the same in every theme
    =================================================================== */
 :root {
-  /* Generous, continuous radii: Apple's rounded-rectangle language. */
+  /* Generous, continuous radii: one rounded-rectangle language. */
   --radius-xs: 7px;
   --radius-sm: 10px;
   --radius-btn: 10px;
@@ -182,7 +185,7 @@
   --glass-sheet: rgb(var(--glass-rgb) / 0.97);
   --hairline: rgb(var(--tint-rgb) / 0.08);
   --hairline-strong: rgb(var(--tint-rgb) / 0.14);
-  /* The inner top highlight glass has on Apple platforms. */
+  /* The inner top highlight glass has on macOS. */
   --sheen: inset 0 1px 0 rgb(255 255 255 / 0.65);
   --scrim: rgba(20, 24, 32, 0.28);
   --blur: blur(30px) saturate(180%);
@@ -205,9 +208,10 @@
   --panel-hairline-hover: var(--hairline-strong);
   --panel-wash: rgb(var(--tint-rgb) / 0.045);
 
-  /* The window's ground: solid, or (vibrant) a veil over the system blur. */
+  /* The window's ground: solid, or (frosted-window) the frost over the
+     desktop. */
   --window-bg: linear-gradient(180deg, #F6F7F9 0%, #EEF0F4 100%);
-  --window-veil: rgb(var(--ground-rgb) / 0.06);
+  --window-frost: rgb(var(--ground-rgb) / 0.06);
 
   --shadow: 0 6px 20px rgba(20, 24, 32, 0.10);
   --shadow-soft: 0 1px 2px rgba(20, 24, 32, 0.06), 0 4px 14px rgba(20, 24, 32, 0.06);
@@ -301,7 +305,7 @@
   --panel-wash: rgb(var(--tint-rgb) / 0.06);
 
   --window-bg: radial-gradient(120% 80% at 50% -10%, #1A2019 0%, #0E1013 55%), #0E1013;
-  --window-veil: rgb(var(--ground-rgb) / 0.21);
+  --window-frost: rgb(var(--ground-rgb) / 0.21);
 
   --shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
   --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 14px rgba(0, 0, 0, 0.25);
@@ -349,16 +353,15 @@
   --window-bg: radial-gradient(120% 80% at 50% -10%, #2A1D12 0%, #0E1013 55%), #0E1013;
 }
 
-/* Vibrancy: the system blur is the window's ground. Thinner glass on top of
-   it, so the desktop's colour carries through the whole window as it does in
-   Apple's own apps. */
-:root.vibrant {
-  --window-bg: var(--window-veil);
+/* The frosted window: what shows through it is the window's ground. Thinner
+   glass on top, so the desktop's colour carries through the whole window. */
+:root.frosted-window {
+  --window-bg: var(--window-frost);
 }
-:root.vibrant[data-theme="green"],
-:root.vibrant[data-theme="blue"],
-:root.vibrant[data-theme="pink"],
-:root.vibrant[data-theme="orange"] {
+:root.frosted-window[data-theme="green"],
+:root.frosted-window[data-theme="blue"],
+:root.frosted-window[data-theme="pink"],
+:root.frosted-window[data-theme="orange"] {
   --glass-thin: rgb(var(--glass-rgb) / 0.35);
   --glass: rgb(var(--glass-rgb) / 0.52);
   --glass-thick: rgb(var(--glass-rgb) / 0.78);
@@ -366,17 +369,31 @@
   --hairline-strong: rgb(var(--tint-rgb) / 0.24);
   --sheen: inset 0 1px 0 rgb(255 255 255 / 0.14);
 }
-:root.vibrant:not([data-theme="green"]):not([data-theme="blue"]):not([data-theme="pink"]):not([data-theme="orange"]) {
+:root.frosted-window:not([data-theme="green"]):not([data-theme="blue"]):not([data-theme="pink"]):not([data-theme="orange"]):not(.platform-linux) {
   --glass-thin: rgb(var(--glass-rgb) / 0.42);
   --glass: rgb(var(--glass-rgb) / 0.62);
   --glass-thick: rgb(var(--glass-rgb) / 0.82);
   --hairline: rgb(var(--tint-rgb) / 0.14);
   --hairline-strong: rgb(var(--tint-rgb) / 0.22);
   --sheen: inset 0 1px 0 rgb(255 255 255 / 0.9);
-  /* None from the page: a light, see-through colour comes out white in the
-     translucent window. The light tint is the blur's own (cmdly/app.py). */
-  --window-veil: transparent;
+  /* None from the page: a light, see-through colour comes out white in a
+     translucent Qt window. The light tint is the blur's own (cmdly/app.py). */
+  --window-frost: transparent;
   --shadow-soft: 0 1px 2px rgba(20, 24, 32, 0.14), 0 6px 18px rgba(20, 24, 32, 0.12);
+}
+
+/* Linux: the window is translucent in Qt's own hands and no blur view carries
+   the theme's colour behind it — the frost is the page's alone, so it carries
+   the theme's ground strongly. The desktop reads through it, never sharp,
+   with or without KWin's blur. */
+:root.platform-linux.frosted-window {
+  --window-frost: rgb(var(--ground-rgb) / 0.86);
+}
+:root.platform-linux.frosted-window[data-theme="green"],
+:root.platform-linux.frosted-window[data-theme="blue"],
+:root.platform-linux.frosted-window[data-theme="pink"],
+:root.platform-linux.frosted-window[data-theme="orange"] {
+  --window-frost: rgb(var(--ground-rgb) / 0.78);
 }
 
 /* Reduce transparency (System Settings > Accessibility): solid everywhere. */
@@ -390,5 +407,5 @@
     --blur-soft: none;
     --blur-fine: none;
   }
-  :root.vibrant { --window-bg: var(--bg); }
+  :root.frosted-window { --window-bg: var(--bg); }
 }

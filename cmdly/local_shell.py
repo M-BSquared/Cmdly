@@ -130,10 +130,10 @@ def shell_env(env: Mapping[str, str] | None = None, platform: str = sys.platform
 
     The operator's own (:func:`cmdly.child_env.child_env`), a terminal type
     xterm.js answers to, and a UTF-8 character set when the session named
-    none. A program started from the Finder or the Dock on macOS gets no
-    ``LANG`` at all, and a shell without one shows every umlaut as an escape;
-    Terminal.app sets it for the same reason. ``LC_CTYPE`` alone, so messages
-    stay in whatever language the system uses.
+    none. A program started from the dock or the file manager on macOS gets
+    no ``LANG`` at all, and a shell without one shows every umlaut as an
+    escape; Terminal.app sets it for the same reason. ``LC_CTYPE`` alone, so
+    messages stay in whatever language the system uses.
     """
     out = child_env(env)
     out["TERM"] = "xterm-256color"

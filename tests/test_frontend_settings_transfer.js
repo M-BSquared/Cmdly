@@ -79,7 +79,7 @@ function testAFileCarriesWhatItSays() {
 
 function testTheFirstCmdlyExportIsRead() {
   const legacy = T.parseBundle(JSON.stringify({
-    cmdly: "2026.10.05", buttons: [{ command: "ls" }], theme: "tesla_dark",
+    cmdly: "2026.10.05", buttons: [{ command: "ls" }], theme: "corvus_green",
   }));
   assert.ok(T.isLegacy(legacy));
   assert.deepEqual(T.sectionsInFile(legacy), ["buttons", "appearance"]);

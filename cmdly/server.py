@@ -539,6 +539,33 @@ class Handler(SettingsRoutes, BaseHTTPRequestHandler):
             result.update(needs="credentials", connection=name)
         self._send_json(result)
 
+    @route("POST", "/api/ssh/power")
+    def _api_ssh_power(self, payload: dict) -> None:
+        """Shut the connection's computer down or reboot it: one command over
+        its own short-lived connection (the companion card's right-click
+        menu). The line comes from the backend, never the page."""
+        name, action = payload.get("name"), payload.get("action")
+        if action not in launcher.POWER_ACTIONS:
+            self._error("action must be one of: " + ", ".join(sorted(launcher.POWER_ACTIONS)))
+            return
+        if not isinstance(name, str) or not name:
+            self._error("name must be a non-empty string")
+            return
+        conn = self.app.config.connection(name)
+        if conn is None:
+            self._error(f"There is no saved connection named “{name}”.", 400,
+                        needs="connection", connection=name)
+            return
+        if not conn["username"]:
+            self._error("Enter the user to log in as.", 400, needs="credentials", connection=name)
+            return
+        result = run_command(host=conn["host"], command=launcher.POWER_ACTIONS[action],
+                             port=conn["port"], username=conn["username"],
+                             password=conn["password"] or None, key_path=conn["key_path"] or None)
+        if result.pop("auth_failed", False):
+            result.update(needs="credentials", connection=name)
+        self._send_json(result)
+
     @route("GET", "/api/ssh/stream")
     def _sse_ssh_stream(self) -> None:
         """One session's output as Server-Sent Events (the WebSocket's fallback)."""

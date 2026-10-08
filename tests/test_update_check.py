@@ -452,7 +452,7 @@ def test_no_cache_at_all_still_points_at_the_releases_page(tmp_path) -> None:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("url", [
-    "file:///etc/passwd", "javascript:alert(1)", "ssh://host", "", "x-apple.systempreferences:",
+    "file:///etc/passwd", "javascript:alert(1)", "ssh://host", "", "x-system-settings:",
 ])
 def test_open_url_refuses_anything_but_the_web(url: str, monkeypatch) -> None:
     monkeypatch.setattr("webbrowser.open", lambda *_a, **_k: pytest.fail("opened " + url))

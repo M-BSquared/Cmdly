@@ -93,14 +93,21 @@ connection opens a shell on it.
 </p>
 
 Seven themes (Automatic, Blue, Green, Orange, Pink, Light, Light Orange). On
-macOS the desktop shines through the window, blurred (vibrancy), the title bar
-is part of the window and terminals are frosted glass.
+macOS the desktop shines through the frosted window, blurred behind it, the
+title bar is part of the window and terminals are frosted glass. On Linux the
+window is frosted too, tinted by the theme — and blurred behind where the
+window manager can blur (KDE's KWin).
 
 ### And more
 
 - **Terminal windows** as in Corvus: frameless, freely placeable, pinnable above
   Cmdly, draggable back into the main window. The scrollback is restored when
   you open one again.
+- **Pinned on top:** a pin beside the filter in the status line keeps the
+  window above other programs', as long as it is on.
+- **Companion power menu:** right-click a companion computer up top and shut
+  it down or reboot it — one command over its SSH connection, asked for
+  before it goes.
 - **Safe connections:** passwords stay in the backend (`~/.cmdly/config.json`,
   readable only by you) and never reach the page. When you change a connection,
   every button and card follows.

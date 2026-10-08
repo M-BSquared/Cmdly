@@ -126,3 +126,11 @@ def test_reachable():
     assert L.button_reachable({"target": "ssh", "connection": "pi"}, comp, True, conns)
     assert L.button_reachable({"target": "ssh", "connection": "other"}, comp, True, conns)
     assert not L.button_reachable({"target": "ssh", "connection": "far"}, comp, True, conns)
+
+
+def test_the_power_actions_run_through_sudo_with_the_bare_command_as_the_fallback():
+    # sudo first (a companion is usually a user with passwordless sudo), the
+    # bare command for a root login; whichever runs takes the computer down.
+    assert L.POWER_ACTIONS["shutdown"] == "sudo shutdown -h now || shutdown -h now"
+    assert L.POWER_ACTIONS["reboot"] == "sudo reboot || reboot"
+    assert set(L.POWER_ACTIONS) == {"shutdown", "reboot"}

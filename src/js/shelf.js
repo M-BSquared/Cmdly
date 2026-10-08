@@ -32,6 +32,26 @@ Cmdly.shelf = (function () {
   // whole list flicker.
   const shown = new Set();
 
+  // What the last render was built from: a repaint whose inputs did not
+  // change is skipped. The status poll asks every three seconds; without
+  // the key each ask would tear the whole list down and rebuild it, taking
+  // a hover, an open menu or a drag in progress with it, and re-running the
+  // icon pass over the document for nothing.
+  let lastKey = "";
+
+  /** Everything a repaint depends on: the buttons, what the filter hides of
+   *  them, the connections its notes name, and what runs, stops or failed. */
+  function paintKey(all, visible) {
+    const st = store().state;
+    return JSON.stringify([
+      all,
+      visible.map((b) => b.id),
+      st.connectionsLoaded ? st.connections.map((c) => c.name) : null,
+      !!(st.config.ui || {}).reachable_only,
+      all.map((b) => [store().isLive(L().sessionName(b)), L().isClosing(b), L().errorOf(b)]),
+    ]);
+  }
+
   const HINTS = {
     local: {
       folderPlaceholder: "~/mission",
@@ -75,6 +95,13 @@ Cmdly.shelf = (function () {
     const ui = Cmdly.ui;
     const all = buttons();
     const shown = visibleButtons();
+    // Nothing the shelf draws has changed: leave the DOM as it is (a hover,
+    // an open menu, a drag in progress all survive the poll). The editor
+    // fills the view with its form, so an unchanged key is not enough
+    // while the shelf is not what is on screen.
+    const key = paintKey(all, shown);
+    if (key === lastKey && viewEl.firstChild && viewEl.dataset.view === "shelf") return;
+    lastKey = key;
     const scrollTop = viewEl.scrollTop;
     ui.clear(viewEl);
     viewEl.dataset.view = "shelf";

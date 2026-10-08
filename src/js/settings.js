@@ -4,7 +4,7 @@ window.Cmdly = window.Cmdly || {};
 /*
   Cmdly.settings — the settings sheet.
 
-  Five pages behind one segmented control: Appearance (theme, vibrancy),
+  Five pages behind one segmented control: Appearance (theme, the frosted window),
   Terminals (frosted or solid, own windows or frames in the app),
   Connections (the saved SSH connections), Data (moving a setup to another
   computer) and About. Every switch applies at once and is saved; there is no
@@ -58,13 +58,15 @@ Cmdly.settings = (function () {
     });
     wrap.appendChild(group("Theme", [cards.el]));
     const native = Cmdly.native;
-    if (native && native.canVibrancy()) {
+    if (native && native.canFrost()) {
       wrap.appendChild(group("Window", [switchRow(
-        "Solid window", uiCfg.vibrancy === false,
-        (on) => store().setUi({ vibrancy: !on }),
-        "By default the desktop shows through the window, blurred and tinted, " +
-        "the way Finder's sidebar does. On: a solid window. macOS's own Reduce " +
-        "transparency setting makes it solid everywhere.",
+        "Solid window", uiCfg.frosted_window === false,
+        (on) => store().setUi({ frosted_window: !on }),
+        "By default the desktop shows through the window, tinted like frosted " +
+        "glass, and blurred behind it too wherever the system can blur (macOS, " +
+        "KDE's KWin on Linux; elsewhere the desktop reads through faintly). On: " +
+        "a solid window. The system's own Reduce transparency setting makes it " +
+        "solid everywhere.",
       )]));
     }
     return wrap;
@@ -76,9 +78,10 @@ Cmdly.settings = (function () {
     return group("Terminal windows", [
       switchRow("Frosted glass", uiCfg.frosted_terminals !== false,
         (on) => store().setUi({ frosted_terminals: on }),
-        "Terminals of frosted glass, with what is behind them blurred, or solid. " +
-        "A terminal in a window of its own is frosted where the system can blur " +
-        "the desktop behind it (macOS) and solid elsewhere."),
+        "Terminals of frosted glass, with what is behind them showing through, " +
+        "or solid. A terminal in a window of its own frosts the desktop behind " +
+        "it: blurred where the system can blur (macOS, KDE's KWin on Linux), " +
+        "tinted on other Linux desktops — never sharp."),
       nativeWindows ? switchRow("Open inside the Cmdly window", !!uiCfg.terminals_in_app,
         (on) => store().setUi({ terminals_in_app: on }),
         "Off (the default): every terminal opens as a window of its own, which " +

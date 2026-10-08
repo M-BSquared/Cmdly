@@ -131,12 +131,12 @@
 .term-win.is-out { visibility: hidden; }
 
 /* Frosted terminals, the default (Settings, "Solid terminals", off). The frame lets
-   what is behind it through, blurred and tinted with the terminal's own
-   ground, and the terminal draws on that. One blur for the whole frame: a
-   second one on the bar would only blur the frame's own tint. In a window of
-   its own the page is see-through and the operating system blurs the desktop
-   behind it (cmdly/app.py), so there the page adds the tint and no blur; the
-   class is only set there once that blur is confirmed (js/popout-page.js). */
+    what is behind it through, blurred and tinted with the terminal's own
+    ground, and the terminal draws on that. One blur for the whole frame: a
+    second one on the bar would only blur the frame's own tint. In a window of
+    its own the page is see-through and the window is the frost (cmdly/app.py),
+    so there the page adds the tint and no blur; the class is only set once
+    the window has said the frost is real (js/popout-page.js). */
 :root.frosted-terminals .term-win--terminal {
   --frost-tint: 60%;
   background: color-mix(in srgb, var(--ssh-bg) var(--frost-tint), transparent);
@@ -153,6 +153,12 @@
   --frost-tint: 48%;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+/* Linux, a window of its own: nothing blurs the desktop behind the tint but
+   KWin, where it runs. So the tint carries the terminal's ground strongly —
+   the desktop reads through it, never sharp, blurred or not. */
+:root.platform-linux.native-window.frosted-terminals .term-win--terminal {
+  --frost-tint: 84%;
 }
 @media (prefers-reduced-transparency: reduce) {
   :root.frosted-terminals .term-win.term-win--terminal { --frost-tint: 100%; }

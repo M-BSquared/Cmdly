@@ -10,8 +10,10 @@ window.Cmdly = window.Cmdly || {};
 
     place     the app may place its windows (not on Wayland)
     pin       a window can be kept above others (not on Wayland)
-    frost     the desktop behind a window can be blurred (macOS)
-    vibrancy  the same, for the main window (macOS)
+    frost     the desktop can show through a window, frosted by the page's
+              own tint (themes.css): the main window's frost and a terminal
+              window's frosted glass alike. macOS blurs the desktop behind
+              the window (NSVisualEffectView); KWin does where it runs
     unified   the title bar is part of the page (macOS): the page draws the
               header under the traffic lights and is the window's drag area
 
@@ -31,7 +33,7 @@ Cmdly.native = (function () {
     window.addEventListener("cmdly:native-ready", () => { if (bridge()) fn(bridge()); }, { once: true });
   }
 
-  function canVibrancy() { return !!support().vibrancy; }
+  function canFrost() { return !!support().frost; }
 
   function reducedTransparency() {
     try {
@@ -41,24 +43,24 @@ Cmdly.native = (function () {
     }
   }
 
-  let wantVibrancy = false;
+  let wantFrost = false;
   let asked = 0;
 
   /**
-   * Vibrancy on or off. The page turns see-through only once the window has
-   * said the blur is behind it, and solid before the blur goes: either way
-   * round, the desktop never shows through sharp.
+   * The frosted window on or off. The page turns see-through only once the
+   * window has said the desktop can show through, and solid before it asks:
+   * either way round, the desktop never shows through sharp.
    */
-  function setVibrancy(on) {
-    wantVibrancy = !!on;
+  function setFrost(on) {
+    wantFrost = !!on;
     const root = document.documentElement;
-    const want = wantVibrancy && canVibrancy() && !reducedTransparency();
+    const want = wantFrost && canFrost() && !reducedTransparency();
     const ticket = ++asked;
-    if (!want) root.classList.remove("vibrant");
+    if (!want) root.classList.remove("frosted-window");
     whenReady((n) => {
-      if (typeof n.setVibrancy !== "function") return;
-      n.setVibrancy(want, Cmdly.theme.isDark(), (ok) => {
-        if (ticket === asked) root.classList.toggle("vibrant", !!(want && ok));
+      if (typeof n.setFrosted !== "function") return;
+      n.setFrosted(want, Cmdly.theme.isDark(), (ok) => {
+        if (ticket === asked) root.classList.toggle("frosted-window", !!(want && ok));
       });
     });
   }
@@ -79,19 +81,48 @@ Cmdly.native = (function () {
     });
   }
 
+  /**
+   * The pin beside the filter in the status line: the window itself kept
+   * above other programs', or not. Only where the window system has a pin at
+   * all (not on Wayland, not in a plain browser), and unlike a terminal's
+   * pin (popout-page.js), which is kept above Cmdly while Cmdly is in
+   * front, this one stays above everything as long as it is on.
+   */
+  function wirePin(slot) {
+    if (!slot) return;
+    whenReady((n) => {
+      if (!support().pin || typeof n.setPinned !== "function") return;
+      const btn = Cmdly.ui.iconButton("pin", {
+        title: "Keep the Cmdly window above other programs",
+        ariaLabel: "Keep the Cmdly window above other programs",
+      });
+      let pinned = false;
+      function paint(on) {
+        pinned = !!on;
+        btn.classList.toggle("active", pinned);
+        btn.setAttribute("aria-pressed", pinned ? "true" : "false");
+        btn.title = pinned ? "Kept above other programs. Click to stop"
+          : "Keep the Cmdly window above other programs";
+      }
+      btn.addEventListener("click", () => n.setPinned(!pinned, paint));
+      paint(false);
+      slot.replaceChildren(btn);
+    });
+  }
+
   function init() {
     const root = document.documentElement;
     const s = support();
     if (s.platform) root.classList.add("platform-" + s.platform);
     if (s.unified) root.classList.add("unified-titlebar");
     if (window.qt && window.qt.webChannelTransport) root.classList.add("desktop-app");
-    window.addEventListener("cmdly:themechange", () => setVibrancy(wantVibrancy));
+    window.addEventListener("cmdly:themechange", () => setFrost(wantFrost));
     try {
       const media = window.matchMedia("(prefers-reduced-transparency: reduce)");
-      const again = () => setVibrancy(wantVibrancy);
+      const again = () => setFrost(wantFrost);
       if (typeof media.addEventListener === "function") media.addEventListener("change", again);
     } catch (_e) { /* an engine without the query: nothing to follow */ }
   }
 
-  return { init, setVibrancy, wireTitlebar, canVibrancy, support, bridge, whenReady };
+  return { init, setFrost, wireTitlebar, wirePin, canFrost, support, bridge, whenReady };
 })();

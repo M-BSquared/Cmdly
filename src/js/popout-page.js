@@ -110,11 +110,15 @@ Cmdly.popoutPage = (function () {
    */
   function goNative(rec, n, opts) {
     const ui = Cmdly.ui;
-    if (document.documentElement) document.documentElement.classList.add("native-window");
-    let maximized = false;
     // What this platform lets the window do (cmdly/app.py, window_support).
     // On Wayland the compositor moves and sizes it, and there is no pin.
     const support = window.cmdlyNativeSupport || {};
+    const root = document.documentElement;
+    if (root) {
+      root.classList.add("native-window");
+      if (support.platform) root.classList.add("platform-" + support.platform);
+    }
+    let maximized = false;
     const place = support.place !== false;
     const canPin = support.pin !== false && typeof n.setPinned === "function";
 
@@ -281,11 +285,12 @@ Cmdly.popoutPage = (function () {
    * Frost a terminal's window of its own, unless Settings asks for solid ones.
    *
    * The page cannot do it alone: backdrop-filter only sees the page, and
-   * behind this page is the desktop. So the desktop app puts the operating
-   * system's blur behind the window (cmdly/app.py, PopoutBridge.setFrosted),
-   * and the page turns see-through only once it has said the blur is there.
-   * Where there is none, the terminal stays solid: text over a sharp desktop
-   * is not readable.
+   * behind this page is the desktop. So the window answers for the whole
+   * frost (cmdly/app.py, PopoutBridge.setFrosted), and the page turns
+   * see-through only once it has: on macOS the operating system's blur is
+   * behind the window, on Linux the frost is this page's own dense tint
+   * (KWin puts its blur behind the tint where it runs). The tint is what
+   * keeps the desktop from ever showing through sharp.
    *
    * Followed live: the switch, the theme (light or dark glass) and maximize
    * (square corners at the edges of the screen).

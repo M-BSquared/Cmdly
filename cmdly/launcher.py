@@ -263,6 +263,17 @@ def remote_command(directory: str, command: str, detach: bool) -> str:
     return body
 
 
+#: What the companion card's power menu (right-click) may ask for, and the
+#: line each runs over the companion's saved SSH connection: ``sudo`` first —
+#: a companion is usually logged in as a user with passwordless sudo — and
+#: the bare command as the fallback for a root login. Whichever runs takes
+#: the computer down, and the connection with it.
+POWER_ACTIONS = {
+    "shutdown": "sudo shutdown -h now || shutdown -h now",
+    "reboot": "sudo reboot || reboot",
+}
+
+
 # ---- companion computers -------------------------------------------------
 
 

@@ -34,7 +34,7 @@ def _setup() -> dict[str, Any]:
         "active_companion": "c1",
         "connections": [{"name": "pi", "host": "10.0.0.2", "port": 22,
                          "username": "pi", "password": "ssh-secret"}],
-        "ui": {"theme": "orange", "vibrancy": False},
+        "ui": {"theme": "orange", "frosted_window": False},
     })
     cfg["window"] = {"width": 900, "height": 700}
     return cfg
@@ -141,7 +141,7 @@ def test_parse_reads_a_setup_from_the_first_cmdly_export():
 
 
 def test_parse_reads_the_pyside_builds_spellings():
-    parsed = settings_bundle.parse({"theme": "tesla_dark",
+    parsed = settings_bundle.parse({"theme": "corvus_green",
                                     "companion": {"name": "Pi", "host": "10.0.0.9"}})
     assert parsed["sections"] == ["companions", "appearance"]
     assert parsed["config"]["ui"]["theme"] == "green"
@@ -214,7 +214,8 @@ def test_merge_normalizes_what_the_file_says():
     out = settings_bundle.merge(current, imported, {"buttons", "appearance"}, secrets=True)
     assert [b["command"] for b in out["buttons"]] == ["ls"]
     assert out["ui"]["theme"] == config_mod.DEFAULT_THEME
-    assert out["ui"]["vibrancy"] is True
+    # "vibrancy" is the older Cmdly's name for the frosted window.
+    assert out["ui"]["frosted_window"] is True
 
 
 def test_missing_connections_names_what_the_buttons_use_but_nobody_saved():

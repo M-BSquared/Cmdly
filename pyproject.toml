@@ -19,11 +19,15 @@ headless = [
     "paramiko>=3.4",
 ]
 # The desktop app every packaged build ships. PySide6 (LGPL v3): Essentials
-# carries QtCore/Gui/Widgets, Addons QtWebEngine and QtWebChannel.
+# carries QtCore/Gui/Widgets, Addons the rest of the modules; since 6.12
+# QtWebEngine travels in a wheel of its own (PySide6-WebEngine) and is no
+# longer inside Addons — without it the app has no page — so all three are
+# one floor, kept together.
 app = [
     { include-group = "headless" },
-    "PySide6-Essentials>=6.9",
-    "PySide6-Addons>=6.9",
+    "PySide6-Essentials>=6.12",
+    "PySide6-Addons>=6.12",
+    "PySide6-WebEngine>=6.12",
 ]
 test = [
     { include-group = "headless" },

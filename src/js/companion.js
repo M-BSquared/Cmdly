@@ -7,7 +7,9 @@ window.Cmdly = window.Cmdly || {};
   One card per companion computer: its name and address, a status pill
   (Online with the round trip, Checking, Offline, Cannot ping, or Not set).
   Pressing the card of an SSH computer connects and opens a terminal on it;
-  a computer that is only pinged has nothing to open. Every
+  a computer that is only pinged has nothing to open. A right-click on an
+  SSH computer's card asks its computer to shut down or reboot (one command
+  over its saved connection, the page never composes the line). Every
   companion is watched at the same time. A saved SSH connection can be shown
   here too (its dialog has the switch; see setWatched).
 
@@ -83,6 +85,12 @@ Cmdly.companion = (function () {
       connection: companion.connection,
       mode: L().MODE_TERMINAL,
     };
+  }
+
+  /** Whether the power menu (right-click) can reach this companion: only a
+   *  computer with a saved SSH connection can be asked anything. */
+  function canPower(companion) {
+    return !!companion && companion.type === SSH && !!companion.connection;
   }
 
   // ---- the probes ---------------------------------------------------------------
@@ -271,7 +279,78 @@ Cmdly.companion = (function () {
       }));
     }
     box.appendChild(tools);
+    if (canPower(c)) {
+      box.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        openPowerMenu(c, e);
+      });
+    }
     return box;
+  }
+
+  // ---- the power menu (right-click) --------------------------------------------
+
+  /**
+   * The dropdown a right-click on a companion card opens: shut the computer
+   * down, or reboot it. Each is asked for first (a computer that goes down
+   * can only be woken at the machine), then run as one command over the
+   * companion's saved connection (POST /api/ssh/power — the command itself
+   * is the backend's, launcher.POWER_ACTIONS, so the page never sends a
+   * shell line of its own).
+   */
+  function openPowerMenu(c, at) {
+    const ui = Cmdly.ui;
+    const menu = ui.menu({
+      role: "menu",
+      ariaLabel: `Power options for ${c.name || c.connection}`,
+      render: (surface) => {
+        const rows = [
+          ui.menuItem({
+            icon: "power", label: "Shut down",
+            onSelect: () => { menu.close(); powerAction(c, "shutdown"); },
+          }),
+          ui.menuItem({
+            icon: "rotate-cw", label: "Reboot",
+            onSelect: () => { menu.close(); powerAction(c, "reboot"); },
+          }),
+        ];
+        rows.forEach((row) => surface.appendChild(row));
+        ui.refreshIcons();
+        return rows;
+      },
+    });
+    menu.open({ x: at.clientX, y: at.clientY });
+  }
+
+  /** Ask, then send one power action to the companion's computer. */
+  function powerAction(c, action) {
+    const who = c.name || c.connection;
+    const reboot = action === "reboot";
+    const word = reboot ? "Reboot" : "Shut down";
+    Cmdly.dialogs.confirm({
+      title: `${word} ${who}?`,
+      text: reboot ? `Reboot ${who} now? It answers again once it is back.`
+        : `Shut down ${who} now?\n\nIt can only be turned back on at the computer itself.`,
+      confirm: word,
+      danger: true,
+    }).then((yes) => {
+      if (!yes) return;
+      Cmdly.api.post("/api/ssh/power", { name: c.connection, action })
+        .then((res) => {
+          if (res && res.ok) {
+            store().emit("status", { text: `${who} is ${reboot ? "rebooting" : "shutting down"}`, kind: "ok" });
+          } else {
+            Cmdly.ui.toast({
+              level: "critical",
+              title: `${word} failed`,
+              message: (res && (res.stderr || res.error)) || "The computer did not answer.",
+            });
+          }
+        })
+        .catch((error) => Cmdly.ui.toast({
+          level: "critical", title: `${word} failed`, message: error.message,
+        }));
+    });
   }
 
   function paint() {
@@ -544,7 +623,7 @@ Cmdly.companion = (function () {
 
   return {
     mount, online, active, isOnline, reachableAnywhere, watching, setWatched,
-    openDialog, entryOf, restart: () => sync(true),
+    openDialog, entryOf, canPower, restart: () => sync(true),
     stateOf, probeWaitMs, timeoutFor, intervalFor, formatRtt,
     INTERVAL_STEPS, TIMEOUT_STEPS,
   };

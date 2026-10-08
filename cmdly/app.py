@@ -6,9 +6,13 @@ page in a PySide6 QtWebEngine window: no browser, one process, one clean
 shutdown that closes every terminal session and ends every program Cmdly
 started on this computer.
 
-On macOS the window is Apple-style: the title bar is folded into the page
-(the page's header sits under the traffic lights) and the desktop shows
-through, blurred (vibrancy, :class:`cmdly.native_window.MacBlur`). A terminal
+On macOS the title bar is folded into the page (the page's header sits
+under the traffic lights) and the desktop shows through the frosted window,
+blurred behind by the system (:class:`cmdly.native_window.MacBlur`). On Linux
+the same frost is a window Qt paints translucent itself (the page's own
+tint, src/css/themes.css), with KWin's blur behind it where the window
+manager honours the hint (:class:`cmdly.native_window.X11Effects`).
+A terminal
 opens in a window of its own by default, frameless and drawn by its page, the
 same frame as in Corvus GCS, which can go anywhere and be pinned above Cmdly.
 
@@ -79,7 +83,7 @@ logger = logging.getLogger("cmdly.app")
 
 from cmdly.config import Config  # noqa: E402
 from cmdly.instance_lock import ALLOW_MULTI_ENV, InstanceLock, allow_multi, describe_peer  # noqa: E402
-from cmdly.native_window import MacBlur, mac_blur, win32_windows  # noqa: E402
+from cmdly.native_window import MacBlur, mac_blur, win32_windows, x11_effects  # noqa: E402
 from cmdly.paths import cmdly_path  # noqa: E402
 from cmdly.qt_plugins import visible_plugin_dir  # noqa: E402
 from cmdly.server import DEFAULT_PORT, create_server, serve_in_thread  # noqa: E402
@@ -98,9 +102,9 @@ POPOUT_DEFAULT = (780, 500)
 MAIN_MIN_W = 300
 MAIN_MIN_H = 520
 MAIN_DEFAULT = (560, 760)
-#: What the main window's blur is tinted with in a light theme (RGBA, 0-1): the
-#: frosted look, with the desktop showing through faintly.
-MAIN_LIGHT_VEIL = (0.90, 0.90, 0.92, 0.35)
+#: What the blur behind the main window is tinted with in a light theme
+#: (RGBA, 0-1): the frosted look, with the desktop showing through faintly.
+MAIN_LIGHT_TINT = (0.90, 0.90, 0.92, 0.35)
 
 _POPOUT_KEY_RE = re.compile(r"^term:[A-Za-z0-9_./@:-]{1,96}$")
 
@@ -157,18 +161,28 @@ def stays_on_top(pinned: bool, app_active: bool) -> bool:
     return bool(pinned) and bool(app_active)
 
 
-def window_support(platform_name: str, os_platform: str = sys.platform) -> dict:
+def window_support(platform_name: str, os_platform: str = sys.platform,
+                   composited: bool = False) -> dict:
     """What the windows can do on this Qt platform (the page reads it first).
 
     ``place``/``pin``: not on Wayland, where the compositor places windows.
-    ``frost``/``vibrancy``/``unified``: macOS, which can blur the desktop
-    behind a window and fold the title bar into the content.
+    ``frost``: the desktop can show through a window, tinted by the page —
+    the main window's frost (src/css/themes.css) and a terminal window's
+    frosted glass alike. On macOS the system blurs the desktop behind the
+    window (NSVisualEffectView); on Linux the page's own tint is the frost,
+    with KWin's blur behind it where the window manager honours the hint.
+    ``unified``: macOS, which can fold the title bar into the content.
+
+    On Linux, *composited* says a compositor runs (a see-through window is
+    black without one); macOS needs neither asked.
     """
     name = str(platform_name or "").lower()
     wayland = name.startswith("wayland")
     cocoa = name == "cocoa"
+    linux = os_platform.startswith("linux")
     plat = "mac" if os_platform == "darwin" else ("windows" if os_platform == "win32" else "linux")
-    return {"place": not wayland, "pin": not wayland, "frost": cocoa, "vibrancy": cocoa,
+    return {"place": not wayland, "pin": not wayland,
+            "frost": cocoa or (linux and composited),
             "unified": cocoa, "platform": plat}
 
 
@@ -317,11 +331,22 @@ def main() -> int:  # noqa: C901 - one function owns the Qt objects and their li
     if os.path.exists(ICON_PATH):
         app.setWindowIcon(QIcon(ICON_PATH))
 
-    support = window_support(QGuiApplication.platformName())
+    platform_name = QGuiApplication.platformName()
+    x11 = x11_effects(platform_name)
+    # On Linux a see-through window is only real where something composites:
+    # always on Wayland, on X11 only with a manager running (X11Effects
+    # asks). The desktop then shows through the page's own frost, and KWin
+    # adds the blur behind it where it runs.
+    support = window_support(platform_name,
+                             composited=bool(x11 and x11.composited())
+                             or platform_name.startswith("wayland"))
     win = win32_windows()
     mac: MacBlur | None = mac_blur() if support["frost"] else None
-    if mac is None:
-        support.update(frost=False, vibrancy=False, unified=False)
+    if mac is None and support["unified"]:
+        # macOS promised the frost and the unified title bar, and AppKit
+        # would not load after all: a plain window there. Everywhere else
+        # mac is None by design, and the support stands.
+        support.update(frost=False, unified=False)
 
     # ---- the main window -------------------------------------------------------
     class MainWindow(QMainWindow):
@@ -337,8 +362,9 @@ def main() -> int:  # noqa: C901 - one function owns the Qt objects and their li
     window.setMinimumSize(MAIN_MIN_W, MAIN_MIN_H)
     saved = config.window
     window.resize(*(saved["width"], saved["height"]) if saved else MAIN_DEFAULT)
-    if support["vibrancy"]:
-        # See-through, so the blur behind the window shows where the page is.
+    if support["frost"]:
+        # See-through, so what is behind the window shows where the page is:
+        # the system's blur on macOS, the page's own frost on Linux.
         window.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
     if support["unified"]:
         # The page runs up under the traffic lights and draws the title bar
@@ -432,9 +458,12 @@ def main() -> int:  # noqa: C901 - one function owns the Qt objects and their li
             self.blur = 0
 
         def unfrost(self) -> None:
-            if self.blur and mac is not None:
+            if self.blur:
                 try:
-                    mac.clear(self.blur)
+                    if mac is not None:
+                        mac.clear(self.blur)
+                    elif x11 is not None:
+                        x11.set_blur(int(self.winId()), False)
                 except Exception:  # noqa: BLE001 - the window goes either way
                     logger.debug("could not take a window's blur away", exc_info=True)
             self.blur = 0
@@ -565,15 +594,26 @@ def main() -> int:  # noqa: C901 - one function owns the Qt objects and their li
         @Slot(bool, bool, float, result=bool)
         def setFrosted(self, on: bool, dark: bool, radius: float) -> bool:  # noqa: N802
             holder = self._holder
-            if not on or mac is None:
+            if not on or not support["frost"]:
                 holder.unfrost()
                 return False
-            try:
-                holder.blur = mac.frost(int(holder.winId()), holder.blur, bool(dark), float(radius),
-                                        holder.width(), holder.height())
-            except Exception:  # noqa: BLE001 - a solid terminal is the fallback
-                logger.debug("could not blur behind a window", exc_info=True)
-                return False
+            if mac is not None:
+                try:
+                    holder.blur = mac.frost(int(holder.winId()), holder.blur, bool(dark), float(radius),
+                                            holder.width(), holder.height())
+                except Exception:  # noqa: BLE001 - a solid terminal is the fallback
+                    logger.debug("could not blur behind a window", exc_info=True)
+                    return False
+                return True
+            # Linux: the window is translucent, so the frost is the page's own
+            # tint (the frosted-terminals class); KWin, where it runs, adds
+            # the blur behind it.
+            if x11 is not None and x11.blur_supported():
+                try:
+                    x11.set_blur(int(holder.winId()), True)
+                    holder.blur = 1
+                except Exception:  # noqa: BLE001 - frosted without blur is fine
+                    logger.debug("could not blur behind a window", exc_info=True)
             return True
 
         @Slot()
@@ -665,7 +705,7 @@ def main() -> int:  # noqa: C901 - one function owns the Qt objects and their li
     # ---- what the main page may ask ---------------------------------------------------
     class MainBridge(QObject):
         """Terminal windows for the page's frames, and its own window: move,
-        zoom, vibrancy. Coordinates are the page's own CSS pixels."""
+        zoom, the frosted window. Coordinates are the page's own CSS pixels."""
 
         def __init__(self, parent=None):
             super().__init__(parent)
@@ -757,25 +797,52 @@ def main() -> int:  # noqa: C901 - one function owns the Qt objects and their li
                 window.showMaximized()
 
         @Slot(bool, bool, result=bool)
-        def setVibrancy(self, on: bool, dark: bool) -> bool:  # noqa: N802
-            """Blur the desktop behind the main window, or stop. Answers whether
-            the blur is there; the page turns see-through only when it is."""
-            if not on or mac is None:
-                if main_state["blur"] and mac is not None:
+        def setFrosted(self, on: bool, dark: bool) -> bool:  # noqa: N802
+            """The main window frosted or solid: the desktop shows through,
+            blurred behind where the system can. Answers whether it can;
+            the page paints its frost only when it says so."""
+            if not support["frost"]:
+                return False
+            if not on:
+                if main_state["blur"]:
                     try:
-                        mac.clear(main_state["blur"])
+                        if mac is not None:
+                            mac.clear(main_state["blur"])
+                        elif x11 is not None:
+                            x11.set_blur(int(window.winId()), False)
                     except Exception:  # noqa: BLE001
-                        logger.debug("could not clear the vibrancy", exc_info=True)
-                main_state["blur"] = 0
+                        logger.debug("could not take the window's frost away", exc_info=True)
+                    main_state["blur"] = 0
                 return False
-            try:
-                main_state["blur"] = mac.frost(int(window.winId()), main_state["blur"], bool(dark), 0.0,
-                                               window.width(), window.height(), material=MacBlur._POPOVER,
-                                               veil=None if dark else MAIN_LIGHT_VEIL)
-            except Exception:  # noqa: BLE001 - a solid window is the fallback
-                logger.debug("could not add vibrancy", exc_info=True)
-                return False
+            if mac is not None:
+                try:
+                    main_state["blur"] = mac.frost(int(window.winId()), main_state["blur"], bool(dark), 0.0,
+                                                   window.width(), window.height(), material=MacBlur._POPOVER,
+                                                   tint=None if dark else MAIN_LIGHT_TINT)
+                except Exception:  # noqa: BLE001 - a solid window is the fallback
+                    logger.debug("could not frost the window", exc_info=True)
+                    return False
+                return True
+            # Linux: the window is translucent and the frost is the page's own;
+            # KWin, asked through the X11 property, blurs behind it.
+            if x11 is not None and x11.blur_supported():
+                try:
+                    x11.set_blur(int(window.winId()), True)
+                    main_state["blur"] = 1
+                except Exception:  # noqa: BLE001 - frosted without the blur
+                    logger.debug("could not add a blur behind the window", exc_info=True)
             return True
+
+        @Slot(bool, result=bool)
+        def setPinned(self, on: bool) -> bool:  # noqa: N802
+            """Keep the main window above other programs', or stop. A pinned
+            terminal is kept above Cmdly's windows only while Cmdly is in
+            front (stays_on_top); this is the app itself, so the pin is the
+            window system's own always-on-top, for as long as it is on."""
+            if not support["pin"]:
+                return False
+            set_on_top(window, bool(on))
+            return bool(on)
 
     class MainPage(QWebEnginePage):
         """The app's page: window.open gets a terminal window; links leave for the browser."""
@@ -833,7 +900,7 @@ def main() -> int:  # noqa: C901 - one function owns the Qt objects and their li
 
     web = QWebEngineView()
     page = MainPage(profile, web)
-    if support["vibrancy"]:
+    if support["frost"]:
         page.setBackgroundColor(Qt.GlobalColor.transparent)
     web.setPage(page)
     configure_view(web)

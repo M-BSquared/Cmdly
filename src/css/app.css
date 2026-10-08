@@ -318,7 +318,7 @@
 .dialog-msg:empty { display: none; }
 .dialog-intro { font-size: var(--text-md); color: var(--text-2); line-height: 1.5; }
 
-/* ----- dialogs: Apple sheet polish ------------------------------------------- */
+/* ----- dialogs: sheet polish -------------------------------------------------- */
 .modal {
   border-radius: var(--radius-xl) !important;
   padding: var(--space-20) !important;

@@ -118,4 +118,11 @@ test("a companion gets a terminal only over SSH", () => {
   assert.equal(e.connection, "pi");
 });
 
+test("the power menu (right-click) needs a companion with a connection", () => {
+  assert.equal(C.canPower({ id: "c1", type: "ssh", connection: "pi@10.0.0.2", host: "h" }), true);
+  assert.equal(C.canPower({ id: "c1", type: "ssh", connection: "", host: "h" }), false);
+  assert.equal(C.canPower({ id: "c1", type: "ping", host: "h" }), false);
+  assert.equal(C.canPower(null), false);
+});
+
 console.log(`\n${passed} launch/companion assertions passed`);

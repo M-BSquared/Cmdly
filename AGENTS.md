@@ -15,8 +15,10 @@ a Python backend plus a web frontend in a PySide6/QtWebEngine window.
 
 - `cmdly/app.py` starts the backend on a thread and shows `src/` in a
   QtWebEngine window. It owns the native windows: the main window (macOS:
-  unified title bar via Qt's expanded client area, vibrancy via
-  `native_window.MacBlur`) and a frameless window per terminal (`popout.html`).
+  unified title bar via Qt's expanded client area, the frost via
+  `native_window.MacBlur`; Linux: a see-through window the page's frost tints,
+  blurred behind by KWin via `native_window.X11Effects`) and a frameless
+  window per terminal (`popout.html`).
 - `cmdly/server.py` is a `ThreadingHTTPServer` on 127.0.0.1 only. Routes are
   registered with `@route` (`cmdly/routing.py`); extra route groups are mixins
   in `cmdly/routes/`. Every request must name the server as
@@ -41,6 +43,9 @@ a Python backend plus a web frontend in a PySide6/QtWebEngine window.
 - Controls come from `Cmdly.ui` (`src/js/ui.js`, shared with Corvus). Long
   explanations go behind an info icon (`ui.field({info})`, `ui.infoHint`),
   never as paragraphs under a field.
+- `src/vendor/lucide.min.js` is a subset built by `tools/build_lucide.mjs`
+  (38 icons, ~11 KB, not the 376 KB full set); a missing icon fails
+  `tests/test_frontend_icons.js` and logs a page error at runtime.
 - The window is a column of bands that never overlap: title bar, companion
   card, the scrolling view, the status line. Anything that can grow scrolls.
 - Questions are `Cmdly.dialogs.confirm`, never `window.confirm`.

@@ -4,7 +4,7 @@ window.Cmdly = window.Cmdly || {};
 /*
   Cmdly.app — boot.
 
-  Reads the settings, applies the appearance (theme, vibrancy, how terminal
+  Reads the settings, applies the appearance (theme, the frosted window, how terminal
   windows open and look), mounts the companion card and the shelf, and
   keeps the status line under them. Every later change to the settings comes
   back through the store's "config" event and is applied again here.
@@ -16,7 +16,7 @@ Cmdly.app = (function () {
   function applyUi() {
     const ui = store().state.config.ui || {};
     Cmdly.theme.set(ui.theme || "blue");
-    Cmdly.native.setVibrancy(ui.vibrancy !== false);
+    Cmdly.native.setFrost(ui.frosted_window !== false);
     if (Cmdly.termWindows) Cmdly.termWindows.setFrosted(ui.frosted_terminals !== false);
     if (Cmdly.popouts) Cmdly.popouts.setInApp(!!ui.terminals_in_app);
   }
@@ -42,6 +42,7 @@ Cmdly.app = (function () {
   function boot() {
     Cmdly.native.init();
     Cmdly.native.wireTitlebar(document.getElementById("titlebar"));
+    Cmdly.native.wirePin(document.getElementById("status-pin"));
     document.getElementById("btn-settings").addEventListener("click", () => Cmdly.settings.open());
     // Cmd/Ctrl + , opens the settings, as in every Mac app.
     document.addEventListener("keydown", (e) => {
