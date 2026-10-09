@@ -332,7 +332,7 @@ Cmdly.popoutPage = (function () {
   function closeWindow() {
     // Said before the window goes: the desktop app deletes the page without a
     // pagehide, and an app still counting this window would, when asked to
-    // open the camera again, bring forward a window that is no longer there.
+    // open the terminal again, bring forward a window that is no longer there.
     if (activeLink) activeLink.stop();
     const n = bridge();
     if (n && typeof n.closeWindow === "function") { n.closeWindow(); return; }
@@ -381,7 +381,7 @@ Cmdly.popoutPage = (function () {
           ariaLabel: "Disconnect the session",
           onClick: () => {
             // Said before the window goes, as closeWindow says it is closing:
-            // the app's SSH tab still shows the session as connected otherwise.
+            // the shelf still shows the session as connected otherwise.
             const done = () => {
               if (typeof Cmdly.sshTerm.sessionEnded === "function") {
                 Cmdly.sshTerm.sessionEnded(session.name);
@@ -423,7 +423,7 @@ Cmdly.popoutPage = (function () {
         },
       });
       handle.fit();
-      // A repair is the launcher starting a new shell, not the operator
+      // A repair is the launcher starting a new shell, not the person
       // asking to type here: the keyboard stays where it is.
       if (!quiet) handle.focus();
     }

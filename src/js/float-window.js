@@ -2,26 +2,24 @@
 window.Cmdly = window.Cmdly || {};
 
 /*
-  Cmdly.floatWindows — the floating window frame the SSH terminals and the
-  camera views share.
+  Cmdly.floatWindows — the floating window frame the terminals live in.
 
   A frame floats over the whole app, is dragged by its title bar, sized from
   its corner grip, maximized from the bar (or a double-click on it), and put
-  away with ×. Several can be open at once, and the tab underneath stays where
-  it was. What is INSIDE a frame is its owner's business: term-window.js puts
-  an xterm there, video-window.js a camera picture.
+  away with ×. Several can be open at once, and the shelf underneath stays
+  where it was. What is INSIDE a frame is its owner's business: term-window.js
+  puts an xterm there.
 
-  One module rather than one copy per kind, because the two must look and
-  behave as one thing. They share one layer too, so clicking a camera brings
-  it above a terminal and back, and one cascade, so the camera that opens
-  after a terminal does not land exactly on it.
+  Every frame shares one layer, so clicking a window brings it above the
+  others, and one cascade, so the window that opens after another does not
+  land exactly on it.
 
   Geometry is remembered per window key for as long as the page lives, so a
   window put in a corner comes back to that corner.
 
   Everything is measured in UNSCALED pixels: <body> carries the interface-scale
   zoom, so getBoundingClientRect reports scaled pixels while style.left writes
-  unscaled ones. Same correction as hud-panel.js, for the same reason.
+  unscaled ones. Every geometry read below makes the same correction.
 */
 Cmdly.floatWindows = (function () {
   const MIN_W = 320;
@@ -53,9 +51,8 @@ Cmdly.floatWindows = (function () {
    * the viewport, each one a step below and left of the last so a second
    * window never lands exactly on the first.
    *
-   * `topInset` keeps the first one clear of the telemetry bar — a window
-   * covering the altitude and battery readouts is the one place on this
-   * screen a window must not open by itself.
+   * `topInset` keeps the first one clear of the title bar and the companion
+   * card below it, which a window must not open on top of by itself.
    *
    * Pure, and exported for the test suite.
    *
@@ -138,7 +135,7 @@ Cmdly.floatWindows = (function () {
     return { width: w, height: h };
   }
 
-  /** The app chrome a self-placed window opens below: the telemetry bar. */
+  /** The app chrome a self-placed window opens below: the title bar. */
   function topInset() {
     const raw = (Cmdly.ui && typeof Cmdly.ui.token === "function")
       ? Cmdly.ui.token("--top-h", "") : "";
@@ -298,7 +295,7 @@ Cmdly.floatWindows = (function () {
   /**
    * One pointer gesture drives both: the title bar moves the window, the
    * corner grip sizes it. Pointer capture on the window itself, so a fast drag
-   * over the map canvas or an xterm does not lose the pointer.
+   * over an xterm does not lose the pointer.
    *
    * A move that carries the pointer out of the app is handed to
    * `rec.onDragOut` (js/popout.js): in the desktop app the frame goes on in a
@@ -398,7 +395,7 @@ Cmdly.floatWindows = (function () {
     rec.maxBtn.title = label;
     rec.maxBtn.setAttribute("aria-label", `${label} the ${rec.noun}`);
     // Lucide has already swapped the <i> for an <svg>, so the glyph is
-    // replaced and re-rendered rather than mutated (same as hud-panel.js).
+    // replaced and re-rendered rather than mutated.
     Cmdly.ui.clear(rec.maxBtn)
       .appendChild(Cmdly.ui.icon(rec.maximized ? "minimize-2" : "maximize-2", 13));
     Cmdly.ui.refreshIcons();
@@ -445,14 +442,14 @@ Cmdly.floatWindows = (function () {
    *
    * @param {Object} spec
    *   key          unique across every kind, e.g. "term:<session>"
-   *   kind         what the window shows ("terminal", "video"), for count/keys
+   *   kind         what the window shows ("terminal"), for count/keys
    *   title        the bar's name
-   *   subtitle     the smaller text beside it (host, camera address)
+   *   subtitle     the smaller text beside it (host, port)
    *   icon         Lucide name for the bar
-   *   noun         "terminal" | "camera": the maximize/close labels read
+   *   noun         what the window is called: the maximize/close labels read
    *                "Maximize the <noun>"
    *   ariaLabel    the dialog's label
-   *   className    a modifier on the frame (term-win--video)
+   *   className    a modifier on the frame
    *   bodyClass    a class for the body the content goes into
    *   status, statusTone  the pill's first text and tone (see setStatus)
    *   tools        extra bar buttons, placed between maximize and ×
@@ -523,8 +520,7 @@ Cmdly.floatWindows = (function () {
 
   /**
    * Put a window away. What its content does about that (the SSH session
-   * stays up, the camera decoder stops once nobody asks for frames) is the
-   * content's onClose.
+   * stays up) is the content's onClose.
    * @param {string} key
    * @returns {boolean} whether there was a window to close
    */
@@ -557,9 +553,9 @@ Cmdly.floatWindows = (function () {
 
   /**
    * Where a frame for `key` would open in the app, in the page's own pixels:
-   * where it was last, or the next step of the cascade. A camera or terminal
-   * that opens as a window of its own straight away opens there, so it comes
-   * up where the operator is used to finding it.
+   * where it was last, or the next step of the cascade. A terminal that opens
+   * as a window of its own straight away opens there, so it comes up where
+   * the person is used to finding it.
    * @param {string} key
    * @param {{w: number, h: number}} [size]
    * @returns {{left, top, width, height}}

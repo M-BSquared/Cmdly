@@ -1,7 +1,7 @@
 """Is a host on the network answering? One ICMP echo through the system ``ping``.
 
 A browser cannot send an ICMP echo, and a raw socket needs privileges the
-operator's account does not have, so this asks the operating system's own
+user's account does not have, so this asks the operating system's own
 ``ping`` for exactly one echo and reads its answer. That is what the
 companion-computer indicator polls: one probe per request, the
 frontend decides how often and when silence counts as offline.

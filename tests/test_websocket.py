@@ -2,7 +2,7 @@
 
 The route exists because every terminal on SSE held one of the six
 connections Chromium allows per host, shared by every window of the app;
-four terminals and nothing else loaded (see corvus/websocket.py). What is
+four terminals and nothing else loaded (see cmdly/websocket.py). What is
 checked here is what the browser relies on: the handshake it validates, the
 frames it sends (masked, maybe fragmented, pings), and that input, resizes,
 the end of a session and the end of the server all arrive as they do over
@@ -132,7 +132,7 @@ class FakeSession:
 
 class FakeBridge:
     def __init__(self) -> None:
-        self.sessions = {"schwalby/one": FakeSession()}
+        self.sessions = {"cmdly/one": FakeSession()}
         self.sent: list[tuple[str, str]] = []
         self.resized: list[tuple[str, int, int]] = []
 
@@ -171,7 +171,7 @@ def live():
 class Client:
     """Just enough of a browser's WebSocket to talk to the route."""
 
-    def __init__(self, port: int, name: str = "schwalby/one", origin: str | None = None) -> None:
+    def __init__(self, port: int, name: str = "cmdly/one", origin: str | None = None) -> None:
         self.sock = socket.create_connection(("127.0.0.1", port), timeout=5)
         key = base64.b64encode(os.urandom(16)).decode()
         origin = f"http://127.0.0.1:{port}" if origin is None else origin
@@ -252,15 +252,15 @@ def test_a_terminal_gets_its_replay_its_output_and_sends_its_keys(live):
         assert client.status_line == "HTTP/1.1 101 Switching Protocols"
         assert f"Sec-WebSocket-Accept: {ws.accept_key(client.key)}" in client.head
         assert "banner" in client.output_until("$ ")
-        bridge.sessions["schwalby/one"].emit("hello ä\r\n")
+        bridge.sessions["cmdly/one"].emit("hello ä\r\n")
         assert "hello ä" in client.output_until("hello")
         client.send({"type": "input", "data": "ls -la\r"})
         client.send({"type": "resize", "cols": 120, "rows": 40})
         client.send({"type": "resize", "cols": True, "rows": 40})       # not a number
         client.send({"type": "resize", "cols": 5000, "rows": 40})       # out of range
         client.send(b"not json")
-        assert _wait(lambda: bridge.sent == [("schwalby/one", "ls -la\r")])
-        assert _wait(lambda: bridge.resized == [("schwalby/one", 120, 40)])
+        assert _wait(lambda: bridge.sent == [("cmdly/one", "ls -la\r")])
+        assert _wait(lambda: bridge.resized == [("cmdly/one", 120, 40)])
         client.send(b"are you there", opcode=OP_PING)
         op, payload = client.frame()
         while op == OP_TEXT:
@@ -268,7 +268,7 @@ def test_a_terminal_gets_its_replay_its_output_and_sends_its_keys(live):
         assert (op, payload) == (OP_PONG, b"are you there")
     finally:
         client.close()
-    assert _wait(lambda: not bridge.sessions["schwalby/one"].subs), "the subscriber outlived the socket"
+    assert _wait(lambda: not bridge.sessions["cmdly/one"].subs), "the subscriber outlived the socket"
 
 
 def test_a_page_on_another_site_is_refused_before_the_upgrade(live):
@@ -279,7 +279,7 @@ def test_a_page_on_another_site_is_refused_before_the_upgrade(live):
         assert "Sec-WebSocket-Accept" not in client.head
     finally:
         client.close()
-    assert not bridge.sessions["schwalby/one"].subs
+    assert not bridge.sessions["cmdly/one"].subs
 
 
 def test_a_session_that_is_not_there_is_answered_with_closed(live):
@@ -297,13 +297,13 @@ def test_a_session_that_is_not_there_is_answered_with_closed(live):
 def test_the_end_of_a_session_reaches_the_terminal_after_its_last_words(live):
     server, bridge = live
     client = Client(server.server_address[1])
-    session = bridge.sessions["schwalby/one"]
+    session = bridge.sessions["cmdly/one"]
     try:
         client.output_until("$ ")
         session.emit("[Shell ended]\r\n")
         session.connected = False
         assert "[Shell ended]" in client.output_until("[Shell ended]")
-        assert client.message() == {"type": "closed", "name": "schwalby/one"}
+        assert client.message() == {"type": "closed", "name": "cmdly/one"}
     finally:
         client.close()
 
@@ -318,7 +318,7 @@ def test_the_browser_closing_ends_the_handler(live):
         assert op == OP_CLOSE and struct.unpack("!H", payload[:2])[0] == 1000
     finally:
         client.close()
-    assert _wait(lambda: not bridge.sessions["schwalby/one"].subs)
+    assert _wait(lambda: not bridge.sessions["cmdly/one"].subs)
     assert _wait(lambda: not [t for t in threading.enumerate() if t.name.startswith("ssh-ws-")])
 
 
@@ -341,7 +341,7 @@ def test_a_request_that_is_not_an_upgrade_gets_an_error_not_a_hang(live):
     server, _ = live
     conn = http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=5)
     try:
-        conn.request("GET", "/api/ssh/ws?name=schwalby%2Fone")
+        conn.request("GET", "/api/ssh/ws?name=cmdly%2Fone")
         assert conn.getresponse().status == 400
     finally:
         conn.close()
@@ -361,4 +361,4 @@ def test_shutting_the_server_down_ends_an_open_terminal(live):
         assert time.monotonic() - started < 4
     finally:
         client.close()
-    assert _wait(lambda: not bridge.sessions["schwalby/one"].subs)
+    assert _wait(lambda: not bridge.sessions["cmdly/one"].subs)

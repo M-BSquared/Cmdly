@@ -7,9 +7,9 @@ rules a change has to keep.
 
 Cmdly is a desktop app (macOS, Linux) with a shelf of one-press buttons that
 start programs on this computer or on a companion computer over SSH, in a
-real terminal or in the background. It is the standalone form of the
-Schwalby / SSH Launcher plugin of Corvus GCS and follows Corvus' structure:
-a Python backend plus a web frontend in a PySide6/QtWebEngine window.
+real terminal or in the background. It is a Python backend plus a web
+frontend in a PySide6/QtWebEngine window, and it stands on its own: nothing
+in the code depends on, or is kept in step with, another project.
 
 ## Architecture
 
@@ -40,7 +40,7 @@ a Python backend plus a web frontend in a PySide6/QtWebEngine window.
   `--glass-thin`, `--glass-thick`, `--hairline`, `--sheen`, `--blur`);
   do not invent a new translucency.
 - Spacing is the 4 px grid (`--space-*`). Gutters 16 px, 12 px between cards.
-- Controls come from `Cmdly.ui` (`src/js/ui.js`, shared with Corvus). Long
+- Controls come from `Cmdly.ui` (`src/js/ui.js`). Long
   explanations go behind an info icon (`ui.field({info})`, `ui.infoHint`),
   never as paragraphs under a field.
 - `src/vendor/lucide.min.js` is a subset built by `tools/build_lucide.mjs`
@@ -49,8 +49,8 @@ a Python backend plus a web frontend in a PySide6/QtWebEngine window.
 - The window is a column of bands that never overlap: title bar, companion
   card, the scrolling view, the status line. Anything that can grow scrolls.
 - Questions are `Cmdly.dialogs.confirm`, never `window.confirm`.
-- Terminal windows are Corvus' (`float-window.js`, `term-window.js`,
-  `popout*.js`, `ssh-term.js`); change them in Corvus first, then here.
+- Terminal windows are `float-window.js`, `term-window.js`, `popout*.js` and
+  `ssh-term.js`; they are changed here and nowhere else.
 
 ## Versions and packaging
 

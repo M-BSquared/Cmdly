@@ -106,17 +106,17 @@
   --z-dropdown: 150;
   --z-toast: 200;
 
-  /* Toast and notification column geometry (components.css). */
-  --notif-gutter: 9px;
-  --notif-icon: 20px;
-  --notif-icon-svg: 16px;
-  --notif-gap: 14px;
-  --notif-pad-y: 10px;
-  --notif-pad-right: 13px;
-  --notif-mark: 3px;
-  --notif-mark-gap: 4px;
-  --notif-mark-fill: 0.38;
-  --notif-dismiss: 24px;
+  /* Toast geometry (components.css). */
+  --toast-gutter: 9px;
+  --toast-icon: 20px;
+  --toast-icon-svg: 16px;
+  --toast-gap: 14px;
+  --toast-pad-y: 10px;
+  --toast-pad-right: 13px;
+  --toast-mark: 3px;
+  --toast-mark-gap: 4px;
+  --toast-mark-fill: 0.38;
+  --toast-dismiss: 24px;
 }
 
 /* ===================================================================

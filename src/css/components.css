@@ -1,30 +1,21 @@
 /*
   Cmdly — reusable component layer.
 
-  Loaded SECOND — after css/themes.css, before css/main.css. That order is
-  the contract: themes.css owns the tokens, this file defines the controls out
-  of them, and main.css lays out the screens and may override a control for
-  one page. It defines no design tokens itself: every value here reads a
-  var() from themes.css, which is what makes a theme switch restyle every
-  component at once.
-
-  It used to load last, which quietly inverted the contract — a page override
-  could then only win on specificity, and a tie went to the component. Three
-  of them silently lost that tie (`.params-actions .btn`, `.btn.rc-detect`,
-  `.btn.rc-tx-chip-drop` all tie `.btn[data-size="sm"]`), so their padding was
-  dead CSS with a comment above it explaining an effect that never happened.
-  See the note on the <link> tags in index.html.
+  Loaded SECOND — after css/themes.css, before css/app.css. That order is the
+  contract: themes.css owns the tokens, this file defines the controls out of
+  them, and app.css lays out the window and may override a control for one
+  place. It defines no design tokens itself: every value here reads a var()
+  from themes.css, which is what makes a theme switch restyle every component
+  at once.
 
   This is the CSS half of src/js/ui.js — one class system per factory there:
     .btn                          button
-    .icon-btn / .nav-item         iconButton (the second via `className`)
+    .icon-btn                     iconButton
     .field-*                      label, field, select, input
     .ui-slider / .ui-toggle       slider, toggle
     .ui-menu / .option-item       menu, menuItem — every dropdown the app opens
-    .option-cards / .option-list  optionCards, optionList
-    .tile                         tile
-    .page-*                       pageHeader, sectionTitle, section, card, row
-    .ui-progress / .progress-bar  progress
+    .option-cards / .segment      optionCards, segment
+    .page-row                     row
     .ui-msg / .ui-toast           message, toast
     .ui-actions                   actions
     .ui-info / .ui-popover        infoHint, popover
@@ -32,20 +23,18 @@
     .status-dot                   statusDot
     .glass                        every floating surface
 
-  Every class ui.js writes is defined here and nowhere else. main.css may add
-  a scoped modifier on top (`.btn.rc-detect`, `.hud-actions .icon-btn`) but
-  never a bare definition — tests/test_frontend_css_boundary.js enforces that,
-  because the drift it catches is invisible until someone edits this file and
-  wonders why nothing changed. New UI is composed from these classes; a
-  screen-specific class layers a modifier on top rather than re-implementing
-  the control.
+  Every class ui.js writes is defined here and nowhere else. app.css may add
+  a scoped modifier on top but never a bare definition, because the drift that
+  allows is invisible until someone edits this file and wonders why nothing
+  changed. New UI is composed from these classes; a screen-specific class
+  layers a modifier on top rather than re-implementing the control.
 */
 
 /* ===== .glass — one translucent material for every floating surface =====
-   Translucency conveys hierarchy. A single definition keeps
-   the flight-action bar, planning panels, popovers, and the HUD reading as
-   one family. Each surface keeps its own positioning/size in main.css; this
-   class supplies the shared blur, border, and shadow depth only. */
+   Translucency conveys hierarchy. A single definition keeps the shelf,
+   popovers, dialogs and terminal windows reading as one family. Each surface
+   keeps its own positioning/size in app.css; this class supplies the shared
+   blur, border, and shadow depth only. */
 .glass {
   background: var(--glass);
   backdrop-filter: var(--blur);
@@ -64,11 +53,9 @@
 }
 
 /* ===== .cmdly-enter — single entrance utility =====
-   Replaces the ad-hoc slideDown/scaleIn/fadeIn/pluginFadeIn keyframes with one
-   fade + 4px rise at 180ms, critically-damped (no overshoot), reduced-motion
-   safe. Existing surfaces reference the keyframe directly in main.css (their
-   className strings are asserted on by tests/test_frontend_plugins.js); new
-   surfaces use this utility class. */
+   One fade + 4px rise at 180ms, critically-damped (no overshoot),
+   reduced-motion safe. Surfaces use this utility class or reference the
+   keyframe directly. */
 @keyframes cmdly-enter {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -82,7 +69,7 @@
 
 /* ===== .btn — single button foundation =====
    Driven by data-variant / data-size / data-shape attributes and state
-   classes (.is-active, .is-busy, .armed). Instant press
+   classes (.is-busy). Instant press
    feedback on :active, no overshoot (critically-damped cubic-bezier),
    reduced-motion safe. */
 /* The hidden attribute must win over the display below. Without this a .btn
@@ -122,8 +109,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* A 1px lift on hover — the same cue the flight-action buttons give, at half
-   the distance because these sit in dense lists rather than on open map. */
+/* A 1px lift on hover. */
 .btn:hover:not(:disabled):not(.is-busy) {
   transform: translateY(-1px);
 }
@@ -171,7 +157,7 @@
    helper default. */
 /* The default variant is .glass at button scale: the same 0.6 fill the menus
    and popovers float on, a hairline of the contrast overlay, and a blur.
-   It reads as a frosted chip over the map and as a slightly lifted tint over
+   It reads as a frosted chip over the desktop and as a slightly lifted tint over
    an opaque page — one material, two honest results, which is the point.
 
    The fill is the glass channel rather than --panel-fill, which the cards
@@ -207,7 +193,7 @@
   background: transparent;
   color: var(--text-2);
 }
-/* A wash rather than a solid fill, so a ghost button over the map tints what
+/* A wash rather than a solid fill, so a ghost button over the frost tints what
    is behind it instead of punching a hole in it. */
 .btn[data-variant="ghost"]:hover {
   background: var(--panel-wash);
@@ -237,7 +223,7 @@
    a lit surface sitting above the page. The sheets say that with .glass — a
    hairline of the contrast overlay plus a soft shadow — and the filled
    buttons said it with neither, which is what made a dialog's actions read as
-   flat stickers under the popover that sent the operator to them. They take
+   flat stickers under the popover that sent the person to them. They take
    the same hairline (the overlay at 8%, .glass's own alpha) and one step less
    elevation: --shadow-soft is the app's small-surface depth, a rung below the
    --shadow-glass the sheets float on.
@@ -282,29 +268,9 @@
 }
 
 /* ----- State classes ----- */
-/* .is-active: filled accent read for toggles (e.g. PLAN engaged). */
-/* The overlay hairline, not `transparent`: a toggle that engages becomes a
-   filled button and should keep the edge every other filled surface carries.
-   Clearing it was only ever about hiding the secondary variant's darker
-   --panel-hairline under the fill, and 8% of the overlay does that already. */
-.btn.is-active {
-  background: var(--accent);
-  color: var(--text-inverted);
-  border-color: var(--hairline);
-}
-.btn.is-active:hover { background: var(--accent-hover); }
-
-/* .armed: filled healthy read for the ARM button when the vehicle is armed. */
-.btn.armed {
-  background: var(--healthy);
-  color: var(--text-inverted);
-  border-color: var(--hairline);
-}
-.btn.armed:hover { background: var(--healthy-bright); }
-
-/* .is-busy: ACK-wait / in-flight command state. A subtle ring pulses to say
-   "working on it" while the button is dimmed and unclickable. Mirrors the
-   existing .autotune-live-dot livePulse (1.6s ease-in-out, opacity 1->0.4). */
+/* .is-busy: in-flight state. A subtle ring pulses to say "working on it"
+   while the button is dimmed and unclickable (1.6s ease-in-out, opacity
+   1->0.4). */
 .btn.is-busy::after {
   content: "";
   position: absolute;
@@ -333,18 +299,17 @@
    a .btn variant because it shares none of that box — different padding
    model, no label, no data-variant.
 
-   iconButton's `className` option swaps this base for a bespoke one
-   (.mc-btn on the map controls, .nav-item on the left rail), so those live
-   next to the layout they belong to; this is the fallback everything else
-   gets. */
+   iconButton's `className` option swaps this base for a bespoke one, which
+   then lives next to the layout it belongs to; this is the fallback
+   everything else gets. */
 .icon-btn {
   width: 28px; height: 28px; display: grid; place-items: center;
   border-radius: var(--radius-btn); color: var(--text-3); transition: background 130ms, color 130ms;
 }
 .icon-btn:hover { background: var(--surface-hover); color: var(--text-1); }
 .icon-btn.active { background: var(--accent-dark); color: var(--accent-bright); }
-/* A newer release is waiting (Cmdly.update): the same dot as .nav-item's,
-   on the button's top right corner. */
+/* A newer release is waiting (Cmdly.update): a dot on the button's top right
+   corner. */
 .icon-btn.has-update { position: relative; }
 .icon-btn.has-update::after {
   content: ""; position: absolute; top: 3px; right: 3px;
@@ -354,40 +319,9 @@
 }
 .icon-btn i, .icon-btn svg { width: 15px; height: 15px; }
 
-/* ===== .nav-item — the left rail's icon-over-label button =====
-   iconButton/navItem's own surface (passed as `className`), so it belongs to
-   the component layer rather than to the rail's layout. .left-nav in main.css
-   still owns the rail itself: its width, its column, its dividers. The
-   responsive rules that fold the label away at narrow widths stay there too,
-   because that is a layout decision about the rail, not about the item. */
-.nav-item {
-  width: 58px; height: 52px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4);
-  padding: 0; border-radius: var(--radius-btn);
-  color: var(--text-2); transition: background 140ms, color 140ms;
-  position: relative;
-}
-.nav-item i, .nav-item svg { width: 21px; height: 21px; }
-.nav-item .nav-label { font-size: var(--text-3xs); font-weight: 600; letter-spacing: 0.7px; color: var(--text-3); }
-.nav-item:hover { background: var(--surface-hover); color: var(--text-1); }
-.nav-item:hover .nav-label { color: var(--text-2); }
-.nav-item.active { background: var(--accent-dark); color: var(--text-1); }
-.nav-item.active .nav-label { color: var(--text-1); }
-.nav-item.active::before {
-  content: ""; position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
-  width: 3px; height: 26px; border-radius: 2px; background: var(--accent);
-}
-/* A newer release is waiting: a dot on the icon's top right corner. */
-.nav-item.has-update::after {
-  content: ""; position: absolute; top: 6px; left: calc(50% + 6px);
-  width: var(--dot-size); height: var(--dot-size); border-radius: 50%;
-  color: var(--notice); background: currentColor; box-shadow: var(--dot-halo);
-  pointer-events: none;
-}
-
 /* ===== .status-dot — unified status indicator =====
-   Replaces the duplicated .tb-dot / .link-status-dot pattern (migration
-   later). One class + data-level (or legacy class) drives the colour; the
-   ring and glow are the shared --dot-halo (themes.css). */
+   One class + data-level drives the colour; the ring and glow are the shared
+   --dot-halo (themes.css). */
 .status-dot {
   width: var(--dot-size);
   height: var(--dot-size);
@@ -444,11 +378,10 @@
 }
 
 /* ===== Form fields — .field / .field-label / .field-select / .field-input =====
-   One field system for every form control in the app (link setup, offline-map
-   downloader, settings). Replaces the four near-identical .link-* / .tiles-* /
-   .params-* input rules that each re-declared the same well, border, focus
-   ring and dropdown chevron. Screen-specific classes may still adjust width
-   or spacing; nothing re-declares the control's own look. */
+   One field system for every form control in the app (button editor,
+   companion form, settings): the same well, border, focus ring and dropdown
+   chevron everywhere. Screen-specific classes may still adjust width or
+   spacing; nothing re-declares the control's own look. */
 .field {
   display: flex;
   flex-direction: column;
@@ -456,18 +389,8 @@
   min-width: 0;
 }
 /* An inline field shares a row with its siblings and splits the width evenly
-   (the downloader's min/max zoom pair). */
+   (a pair of short values side by side). */
 .field-inline { flex: 1; }
-/* A field that belongs to the rows ABOVE it rather than beside them — the key
-   strength under the two key switches. The rule is what says "this is theirs,
-   both of them" instead of letting it read as one more setting of the last
-   switch it happens to sit under. */
-.field-ruled {
-  border-top: 1px solid var(--border);
-  margin-top: 4px;
-  padding-top: 12px;
-}
-
 /* A caption that carries a hint icon (field's `info`). The two are one
    caption: the wrapper is what keeps the icon beside the words in a
    row-direction field, where a bare sibling would be pushed to the far end by
@@ -567,24 +490,21 @@
   box-shadow: 0 0 0 2px var(--accent-dim);
 }
 
-/* The list itself is a .ui-menu of .option-item rows — the same surface the
-   map's context menu and layer switcher open — on the same glass material as
-   the flight bar it drops out of; .ui-select-menu adds nothing to it. */
+/* The list itself is a .ui-menu of .option-item rows, on the same glass
+   material as every other menu; .ui-select-menu adds nothing to it. */
 
 /* ===== .ui-menu — the one dropdown surface =====
    Built by Cmdly.ui.menu(). Everything that opens a list over something else
-   wears this: the list behind a <select>, the map's layer switcher, the map's
-   context menu. The surface carries the material, the padding and the entry
+   wears this: the list behind a <select>. The surface carries the material, the padding and the entry
    animation; ui.menu() writes the geometry inline from the anchor it was
    opened against, and data-anchor says which of the two kinds that was.
 
    "element" is a list dropped out of a trigger: mounted on <body> and fixed,
-   because inside the flight bar or a setup card it would be clipped by the
-   pane and stacked under the map chrome. "point" is a menu anchored to a
-   place INSIDE a container — the map's context menu, which has to scroll,
-   resize and pan with the ground it points at — so it is absolute in that
-   container and sits at the map-popover level rather than above the
-   whole app. */
+   because inside a card it would be clipped by the card and stacked under
+   its neighbours. "point" is a menu anchored to a place INSIDE a container,
+   which has to scroll and resize with it, so it is absolute in that
+   container and sits at the popover level rather than above the whole
+   app. */
 .ui-menu {
   padding: 5px;
   border-radius: var(--radius);
@@ -716,7 +636,7 @@
 /* ===== .ui-slider — stepped slider with step indicators =====
    A range input restricted to a handful of named steps, with a tick and a
    clickable label under each one. Used for the interface-scale control, whose
-   values are not a continuum: an operator picks 100% or 125%, never 113%.
+   values are not a continuum: a person picks 100% or 125%, never 113%.
 
    The native track and thumb are replaced entirely (the rail, the fill and
    the ticks are our own elements underneath a transparent input) so the
@@ -933,68 +853,8 @@
    on. */
 .ui-actions + .ui-msg { margin-top: 10px; }
 
-/* ===== .tile — large clickable tile (Setup grid, Plugins grid) =====
-   Lift on hover, scale on press, keyboard focus ring,
-   transform/opacity only. The two grids differ solely in flow direction, icon
-   size and padding, so those are the only things their own classes set. */
-.tile {
-  display: flex;
-  text-align: left;
-  cursor: pointer;
-  background: var(--panel-fill);
-  backdrop-filter: var(--blur-fine);
-  -webkit-backdrop-filter: var(--blur-fine);
-  border: 1px solid var(--panel-hairline);
-  border-radius: var(--radius);
-  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
-              background 130ms, border-color 130ms, box-shadow 160ms;
-  will-change: transform;
-}
-.tile:hover {
-  background: var(--panel-fill-hover);
-  border-color: var(--panel-hairline-hover);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
-}
-.tile:active { transform: translateY(0) scale(0.99); }
-.tile:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 2px; }
-.tile:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-.tile:disabled:hover {
-  background: var(--panel-fill);
-  border-color: var(--panel-hairline);
-  transform: none;
-  box-shadow: none;
-}
-
-.tile-icon {
-  border-radius: var(--radius-btn);
-  background: var(--accent-dark);
-  color: var(--accent-bright);
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-}
-.tile-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.tile-title { font-size: 14px; font-weight: 600; color: var(--text-1); letter-spacing: 0.2px; }
-.tile-desc { font-size: 11.5px; color: var(--text-3); line-height: 1.45; }
-/* Trailing affordance chevron (Setup tiles). */
-.tile > svg, .tile > i[data-lucide="chevron-right"] {
-  width: 16px; height: 16px; color: var(--text-3); flex: 0 0 auto; align-self: center;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tile, .tile:hover, .tile:active {
-    transition: none !important;
-    transform: none !important;
-  }
-}
-
 /* ===== .option-cards — grid of selectable cards =====
-   The theme picker and the map-service picker are the same control with
-   different content, so they are the same component. --option-columns lets a
+   The theme picker. --option-columns lets a
    call site pick the density; the grid still wraps below its min width. */
 .option-cards {
   display: grid;
@@ -1064,7 +924,7 @@
 
 /* ===== .ui-segment — segmented control =====
    Recessed well with the chosen option lifted out of it, matching
-   the connection panel's Serial / Network (.link-kinds). */
+   the companion form's connection choice. */
 .ui-segment {
   display: flex;
   gap: 3px;
@@ -1117,12 +977,11 @@
   outline-offset: -2px;
 }
 
-/* ===== .option-list / .option-item — the row every list is made of =====
-   One row, three shapes: a leading state dot for a chooser (the layer
-   switcher, the list behind a <select>), a leading icon for an action (the
-   map's context menu), and an optional second line under the label saying
-   what the row will do or why it cannot be used. Built by Cmdly.ui.menuItem
-   and laid out in a .option-list or a .ui-menu. */
+/* ===== .option-item — the row every list is made of =====
+   One row, two shapes: a leading state dot for a chooser (the list behind a
+   <select>) and a leading icon for an action, with an optional second line
+   under the label saying what the row will do or why it cannot be used.
+   Built by Cmdly.ui.menuItem and laid out in a .ui-menu. */
 .option-list { display: flex; flex-direction: column; gap: 2px; }
 .option-item {
   display: flex;
@@ -1142,15 +1001,13 @@
 .option-item:active:not(:disabled) { background: var(--accent-dim); }
 .option-item:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: -2px; }
 .option-item.active { background: var(--accent-dark); color: var(--text-1); }
-/* Disabled is a normal state on an action row — the map's two actions need a
-   connected (and, to fly, an armed) vehicle — so it has to read as "not yet",
+/* Disabled is a normal state on an action row — it has to read as "not yet",
    not as broken: the row stays legible and says why in .option-item-note.
    --text-3, not --text-disabled: the note is already --text-3, and the palest
    token on the label put the two the wrong way round, with the reason
    shouting over the thing it was explaining. */
 .option-item:disabled { color: var(--text-3); cursor: not-allowed; }
-/* An action row's leading icon, which picks up the accent on hover the way
-   the map chrome's buttons do. Inert on a row that carries a dot instead. */
+/* An action row's leading icon, which picks up the accent on hover. Inert on a row that carries a dot instead. */
 .option-item > i, .option-item > svg {
   width: 14px; height: 14px; flex: 0 0 auto; color: var(--text-2);
 }
@@ -1182,54 +1039,11 @@
   white-space: nowrap;
 }
 
-/* ===== .ui-progress — determinate bar + caption ===== */
-.ui-progress { display: flex; flex-direction: column; gap: var(--space-8); }
-.ui-progress[hidden] { display: none; }
-.ui-progress-text {
-  font-size: var(--text-xs);
-  color: var(--text-2);
-  font-variant-numeric: tabular-nums;
-}
-/* The bar itself. progress() builds .ui-progress > .progress-bar >
-   .progress-bar-fill, so all three belong to the same factory even though the
-   inner two carry the older, unprefixed names. */
-.progress-bar {
-  height: 8px; background: var(--surface-3); border-radius: 4px; overflow: hidden;
-  border: 1px solid var(--border-soft);
-}
-.progress-bar-fill {
-  height: 100%; width: 0%; background: var(--accent);
-  border-radius: 4px;
-  transition: width 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-/* ===== .page-* — the settings/setup page skeleton =====
-   pageHeader, sectionTitle, section, card and row build every non-map page out
-   of these. They are page furniture rather than controls, which is why they
-   are set at --text-md and up while the instrument and parameter UI below
-   lives at --text-xs: a page you read, not a panel you scan. */
-.page-header { margin-bottom: 28px; }
-.page-title { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; color: var(--text-1); margin-bottom: var(--space-4); }
-.page-subtitle { font-size: var(--text-md); color: var(--text-3); }
-.page-section { margin-bottom: 24px; }
-.page-section-title {
-  font-size: var(--text-md); font-weight: 600; letter-spacing: 0.6px; color: var(--text-2);
-  text-transform: uppercase; margin-bottom: var(--space-12);
-  padding-bottom: var(--space-8); border-bottom: 1px solid var(--border-soft);
-}
-/* Cards wear the same subtle glass as the buttons inside them, so a settings
-   page reads as one substance. The fill is a touch heavier than a button's
-   because a card is a surface things sit ON, not a control. */
-.page-card {
-  background: var(--panel-fill);
-  backdrop-filter: var(--blur-fine);
-  -webkit-backdrop-filter: var(--blur-fine);
-  border: 1px solid var(--panel-hairline);
-  border-radius: var(--radius);
-  padding: var(--space-18);
-  margin-bottom: var(--space-12);
-}
-.page-card-title { font-size: var(--text-lg); font-weight: 600; color: var(--text-1); margin-bottom: var(--space-6); }
+/* ===== .page-row / .page-card-desc — read-only rows and their prose =====
+   Cmdly.ui.row builds the key/value rows (the update dialog); .page-card-desc
+   is the muted prose line under them. Page furniture rather than controls,
+   which is why they are set at --text-md: text you read, not a panel you
+   scan. */
 .page-card-desc { font-size: var(--text-sm); color: var(--text-3); line-height: 1.5; }
 .page-row {
   display: flex; align-items: center; justify-content: space-between;
@@ -1244,7 +1058,7 @@
    the severity color so a theme only has to redefine the color itself. The
    leading dot is the shared status dot (--dot-halo). It sits in the text flow
    rather than at a fixed offset, so it stays on the first line whatever
-   padding a caller gives the message (schwalby's one-liner is 3px), and the
+   padding a caller gives the message, and the
    negative indent hangs a wrapped second line under the text, not the dot. */
 .ui-msg {
   font-size: 11.5px;
@@ -1273,30 +1087,16 @@
 .ui-msg.warn { color: var(--warning);  background: var(--warning-dark);  border: 1px solid var(--warning); }
 
 /* ===== .ui-toast — transient feedback (Cmdly.ui.toast) =====
-   A transient sibling of the warnings popover, not a replacement for it: the
-   notification board is a log of vehicle/flight state, kept until dismissed;
-   a toast is a UI aside (a hint, a local confirmation) that says its piece
-   and clears itself. Stacked in its own column and never added to the board
-   underneath.
-
-   It is built to the same anatomy as a board row (.wp-item in flight.css) —
-   leading column, text, dismiss — on the shared --notif-* tokens, because the
-   two are regularly on screen together: the stack drops below the popover
-   when that is open, which puts a toast directly under a row it must not look
-   like a different component from. The severity mark is the same broken rule,
-   drawn by the same arithmetic, and the same settings switch turns it off in
-   both places.
-
-   The one difference is the text column: a row carries a message and a
-   timestamp, a toast carries a title and a message. Same skeleton, different
-   second line. */
+   A UI aside (a hint, a local confirmation) that says its piece and clears
+   itself. Stacked in its own column, built as leading column, text, dismiss
+   on the --toast-* tokens. The severity mark is a broken rule drawn on the
+   card: a segment above the icon, the icon, a segment below. */
 .ui-toast-stack {
   position: fixed; top: calc(var(--top-h) + 10px); right: 12px; z-index: var(--z-toast);
   width: min(320px, calc(100 * var(--vw) - 24px));
   display: flex; flex-direction: column; gap: var(--space-8);
   /* The stack itself is not a target — only the cards inside it are — so a
-     click meant for the map or a button behind an already-faded toast still
-     lands. */
+     click meant for a button behind an already-faded toast still lands. */
   pointer-events: none;
 }
 .ui-toast {
@@ -1304,52 +1104,45 @@
   position: relative;
   border-radius: var(--radius);
   overflow: hidden;
-  display: flex; gap: var(--notif-gap);
-  padding: var(--notif-pad-y) var(--notif-pad-right) var(--notif-pad-y) var(--notif-gutter);
+  display: flex; gap: var(--toast-gap);
+  padding: var(--toast-pad-y) var(--toast-pad-right) var(--toast-pad-y) var(--toast-gutter);
   align-items: flex-start;
   transition: opacity 160ms, transform 160ms;
 }
-/* The severity mark: a segment above the icon, the icon, a segment below —
-   the same rule .wp-item draws, from the same tokens. It replaced an
-   `inset 2px 0 0` box-shadow down the full left edge, which is the flat
-   version of the rail the board had already moved away from. */
+/* The severity mark. */
 .ui-toast::before,
 .ui-toast::after {
   content: "";
   position: absolute;
-  left: calc(var(--notif-gutter) + (var(--notif-icon) - var(--notif-mark)) / 2);
-  width: var(--notif-mark);
+  left: calc(var(--toast-gutter) + (var(--toast-icon) - var(--toast-mark)) / 2);
+  width: var(--toast-mark);
   border-radius: 999px;
   background: currentColor;
 }
 .ui-toast::before {
-  bottom: calc(50% + var(--notif-icon) / 2 + var(--notif-mark-gap));
-  height: calc((50% - var(--notif-icon) / 2 - var(--notif-mark-gap)) * var(--notif-mark-fill));
+  bottom: calc(50% + var(--toast-icon) / 2 + var(--toast-mark-gap));
+  height: calc((50% - var(--toast-icon) / 2 - var(--toast-mark-gap)) * var(--toast-mark-fill));
 }
 .ui-toast::after {
-  top: calc(50% + var(--notif-icon) / 2 + var(--notif-mark-gap));
-  height: calc((50% - var(--notif-icon) / 2 - var(--notif-mark-gap)) * var(--notif-mark-fill));
+  top: calc(50% + var(--toast-icon) / 2 + var(--toast-mark-gap));
+  height: calc((50% - var(--toast-icon) / 2 - var(--toast-mark-gap)) * var(--toast-mark-fill));
 }
 .ui-toast[data-level="info"]::before, .ui-toast[data-level="info"]::after { color: var(--nav); }
 .ui-toast[data-level="warning"]::before, .ui-toast[data-level="warning"]::after { color: var(--warning); }
 .ui-toast[data-level="critical"]::before, .ui-toast[data-level="critical"]::after { color: var(--critical); }
-/* Marks off (Settings -> Notifications), exactly as on the board: the
-   segments go, the centred icon does not move. */
-:root[data-notification-marks="off"] .ui-toast::before,
-:root[data-notification-marks="off"] .ui-toast::after { content: none; }
 .ui-toast.is-leaving { opacity: 0; transform: translateY(-4px); }
 @media (prefers-reduced-motion: reduce) {
   .ui-toast { transition: none; }
 }
 .ui-toast-icon {
-  width: var(--notif-icon); height: var(--notif-icon);
+  width: var(--toast-icon); height: var(--toast-icon);
   flex: 0 0 auto; display: grid; place-items: center;
   /* Centred on the card, not on the title: the rule is broken AT the icon,
      and a break at the top of a three-line message would leave one segment
      and a stub. */
   align-self: center;
 }
-.ui-toast-icon svg { width: var(--notif-icon-svg); height: var(--notif-icon-svg); }
+.ui-toast-icon svg { width: var(--toast-icon-svg); height: var(--toast-icon-svg); }
 .ui-toast-icon.info { color: var(--nav); }
 .ui-toast-icon.warning { color: var(--warning); }
 .ui-toast-icon.critical { color: var(--critical); }
@@ -1358,7 +1151,7 @@
 .ui-toast-body { font-size: var(--text-sm); color: var(--text-2); line-height: 1.35; }
 .ui-toast-body:empty { display: none; }
 .ui-toast-close {
-  width: var(--notif-dismiss); height: var(--notif-dismiss);
+  width: var(--toast-dismiss); height: var(--toast-dismiss);
   flex: 0 0 auto; display: grid; place-items: center;
   margin: -2px -4px -2px auto; border-radius: var(--radius-btn); color: var(--text-3);
 }
@@ -1378,11 +1171,8 @@
 }
 
 /* ===== .modal — one dialog for the whole app =====
-   Dimmed, blurred scrim with a centred glass panel. Replaces the three
-   hand-rolled overlays (.ssh-modal-*, .motor-calib-*, and the offline-map
-   panel that used to be an anchored popover on the map). Sits above the map
-   chrome and the right panel so nothing can cover it — which is why the
-   offline-map downloader is a dialog now and not a popover. */
+   Dimmed, blurred scrim with a centred glass panel. Sits above the shelf and
+   the companion card so nothing can cover it. */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1457,82 +1247,6 @@
   .modal-overlay { backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 
-/* ===== Credits dialog (Settings > About > Credits) =====
-   A reading surface, not a control panel: the type scale is a touch larger than
-   the dense telemetry lists, and each entry is name + license on one line with
-   its purpose underneath, so the list can be skimmed for "what is this and what
-   licence am I bound by". */
-.credits-intro {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border-soft);
-}
-.credits-product { font-size: 16px; font-weight: 700; color: var(--text-1); letter-spacing: 0.3px; }
-.credits-author { font-size: 13px; font-weight: 600; color: var(--accent-bright); }
-.credits-org { font-size: 11.5px; color: var(--text-3); }
-.credits-note { font-size: 11.5px; color: var(--text-2); line-height: 1.5; margin-top: 8px; }
-/* The licence line is a legal notice, not prose: set apart from the note above
-   it and dimmer, so it reads as the fine print it is. */
-.credits-license { color: var(--text-3); border-top: 1px solid var(--border-soft); padding-top: 8px; }
-
-.credits-group { display: flex; flex-direction: column; gap: 8px; }
-.credits-entry {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 9px 11px;
-  border-radius: var(--radius-btn);
-  background: var(--panel-fill);
-  border: 1px solid var(--panel-hairline);
-}
-.credits-entry-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-}
-.credits-entry-name { font-size: 12.5px; font-weight: 600; color: var(--text-1); }
-.credits-entry-license {
-  font-size: 10px;
-  color: var(--text-3);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  flex: 0 0 auto;
-}
-.credits-entry-role { font-size: 11px; color: var(--text-2); line-height: 1.45; }
-/* The URL is reference text, not a link — offline there is nothing to follow,
-   so it is styled to be read and typed out elsewhere rather than clicked. */
-.credits-entry-url {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text-3);
-  word-break: break-all;
-}
-.credits-footer {
-  font-size: 11px;
-  color: var(--text-3);
-  line-height: 1.5;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-soft);
-}
-
-/* The institution's wordmark in the credits dialog. Official marks are shown
-   in their own colours — never filtered or recoloured to match a theme — so on
-   the dark themes it sits on a light plate that gives the grey half of the
-   logo something to read against. The light theme needs no plate. */
-.credits-orgmark {
-  display: block;
-  width: 190px;
-  max-width: 100%;
-  height: auto;
-  margin-top: 10px;
-  padding: 7px 10px;
-  border-radius: var(--radius-btn);
-  background: var(--orgmark-plate);
-}
-
 /* ===== update dialog (Cmdly.update) =====
    Release notes come off the network as plain text and are shown as typed —
    a <pre> so the bullet/heading characters GitHub bodies use keep their
@@ -1554,8 +1268,8 @@
   word-break: break-word;
 }
 
-/* Same reasoning as .credits-entry-url: in the desktop build an external link
-   is inert, so the release URL is read (and copied), never clicked. */
+/* In the desktop build an external link is inert, so the release URL is read
+   (and copied), never clicked. */
 .update-url {
   font-family: var(--mono);
   font-size: 10.5px;

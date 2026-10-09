@@ -17,7 +17,7 @@ at load time (``QtWebEngineWidgets`` imports ``QtPrintSupport``).
 
 The last step reads every binary left in the bundle and fails when one of them
 links a library that was taken out. A trimmed bundle that would not load is a
-build error, never a surprise on the operator's machine.
+build error, never a surprise on the user's machine.
 
     python3 tools/qt_bundle.py prune <site-packages>      # trim in place
     python3 tools/qt_bundle.py prune --dry-run <site-packages>

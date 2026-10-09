@@ -1,4 +1,4 @@
-"""The one-shot pinger behind Schwalby's companion indicator (corvus/net_probe.py)."""
+"""The one-shot pinger behind the companion indicator (cmdly/net_probe.py)."""
 from __future__ import annotations
 
 import shutil

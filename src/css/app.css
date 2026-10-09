@@ -91,7 +91,6 @@
   font-family: var(--mono); font-size: var(--text-xs); color: var(--on-tile-dim);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
-.comp-chev { color: var(--on-tile-dim); flex: 0 0 auto; }
 
 .comp-pill {
   flex: 0 0 auto;
@@ -112,11 +111,10 @@
 .comp-rtt { font-family: var(--mono); font-weight: 500; opacity: 0.85; }
 .comp-tools { display: flex; align-items: center; gap: var(--space-2); flex: 0 0 auto; }
 .comp-tools .icon-btn { width: 32px; height: 32px; }
-.comp-menu { min-width: 260px; }
 
-/* A narrow window: the round trip and the chevron go first. */
+/* A narrow window: the round trip goes first. */
 @media (max-width: 480px) {
-  .comp-rtt, .comp-chev { display: none; }
+  .comp-rtt { display: none; }
 }
 
 /* ----- section heads --------------------------------------------------- */
@@ -149,7 +147,11 @@
 }
 .section-head .icon-btn { width: 32px; height: 32px; }
 .section-head .icon-btn.active { background: var(--accent-dim); color: var(--accent-bright); }
-.add-btn { border-radius: 999px !important; padding-left: 12px !important; padding-right: 14px !important; }
+/* A plain "+ Add": the classic toolbar text button — no fill, no pill, accent
+   text that dims while pressed. */
+.btn.add-btn[data-variant="ghost"] { background: none; border-color: transparent; box-shadow: none; border-radius: 6px; padding: 4px 8px; font-size: 13px; font-weight: 600; color: var(--accent-bright); }
+.btn.add-btn[data-variant="ghost"]:hover:not(:disabled) { background: none; box-shadow: none; transform: none; color: var(--accent-hover); }
+.btn.add-btn:active:not(:disabled) { opacity: 0.5; transform: none; }
 
 /* ----- the shelf ----------------------------------------------------------- */
 .shelf { display: flex; flex-direction: column; gap: var(--space-8); }

@@ -1,9 +1,9 @@
 /*
   Cmdly — the terminal windows.
 
-  The same frame as Corvus GCS's terminals, in both of its homes: a frame
-  floating over the app (js/float-window.js), and a native window of its own
-  (popout.html, js/popout-page.js), which is the default in the desktop app.
+  The terminal frame, in both of its homes: a frame floating over the app
+  (js/float-window.js), and a native window of its own (popout.html,
+  js/popout-page.js), which is the default in the desktop app.
   Frosted glass unless Settings > Terminals asks for solid ones.
 */
 
@@ -17,7 +17,7 @@
 }
 .ssh-status.connected { color: var(--healthy); }
 .ssh-status.connected .dot { box-shadow: var(--dot-halo); }
-/* On its way: a camera connecting, or live but with no new picture. */
+/* On its way: a session connecting. */
 .ssh-status.pending { color: var(--warning); }
 .ssh-status.pending .dot { box-shadow: var(--dot-halo); }
 .ssh-status[hidden] { display: none; }
@@ -89,9 +89,9 @@
 .term-win-disconnect:hover { color: var(--critical); }
 
 /* The terminal fills the frame. .ssh-term carries the xterm styling already;
-   these two only undo the SSH tab's card metrics. */
+   these two only undo the card metrics of .ssh-term. */
 .term-win-body { flex: 1; min-height: 0; border: none; border-radius: 0; margin: 0; }
-.term-win-body:not(.ssh-term):not(.video-win-body) { background: var(--surface-2); }
+.term-win-body:not(.ssh-term) { background: var(--surface-2); }
 
 /* Bottom-right size grip: a corner target rather than four edges, because a
    1px edge is a poor hit area and the window is already resizable to anything

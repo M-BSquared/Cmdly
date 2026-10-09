@@ -48,7 +48,7 @@ class _FakeChannel:
 
 def _live_session(channel: _FakeChannel | None = None) -> SshSession:
     """A session wired to a fake channel, without connecting to anything."""
-    s = SshSession("dev", "10.0.0.5", 22, "schwalby")
+    s = SshSession("dev", "10.0.0.5", 22, "cmdly")
     s._channel = channel if channel is not None else _FakeChannel()
     s._connected = True
     return s
@@ -61,12 +61,12 @@ def _live_session(channel: _FakeChannel | None = None) -> SshSession:
 def test_add_sub_replays_output_published_before_it_subscribed() -> None:
     s = _live_session()
     s._publish("Welcome to companion\r\n")
-    s._publish("schwalby@companion:~$ ")
+    s._publish("cmdly@companion:~$ ")
 
     seen: list[str] = []
     s.add_sub(seen.append)
 
-    assert "".join(seen) == "Welcome to companion\r\nschwalby@companion:~$ "
+    assert "".join(seen) == "Welcome to companion\r\ncmdly@companion:~$ "
 
 
 def test_replay_is_one_chunk_then_live_output_follows() -> None:
@@ -136,7 +136,7 @@ def test_resize_reaches_the_channel_and_is_remembered() -> None:
 def test_resize_before_connect_is_remembered_for_the_shell_request() -> None:
     """The size is what invoke_shell opens the channel with, so it has to
     survive being set while the session is still offline."""
-    s = SshSession("dev", "10.0.0.5", 22, "schwalby")
+    s = SshSession("dev", "10.0.0.5", 22, "cmdly")
 
     assert s.resize(100, 30) is False   # nothing to talk to yet
     assert (s.cols, s.rows) == (100, 30)
@@ -225,12 +225,12 @@ def test_bridge_keeps_the_reason_until_the_next_attempt(monkeypatch) -> None:
     survives for the HTTP layer to hand back."""
     _connects_fail_with(monkeypatch, ConnectionRefusedError(61, "Connection refused"))
     bridge = SshBridge()
-    assert bridge.connect("launcher/a", "127.0.0.1", 1, "pilot") is False
-    assert bridge.connect_error("launcher/a") == "Connection refused (127.0.0.1:1)."
-    assert bridge.connect_error("launcher/b") == ""
+    assert bridge.connect("cmdly/a", "127.0.0.1", 1, "pilot") is False
+    assert bridge.connect_error("cmdly/a") == "Connection refused (127.0.0.1:1)."
+    assert bridge.connect_error("cmdly/b") == ""
 
-    bridge.disconnect("launcher/a")
-    assert bridge.connect_error("launcher/a") == ""
+    bridge.disconnect("cmdly/a")
+    assert bridge.connect_error("cmdly/a") == ""
 
 
 @pytest.mark.parametrize("exc,expected", [
@@ -250,13 +250,13 @@ def test_bridge_remembers_a_refused_login_until_the_next_attempt(monkeypatch) ->
     only saying that the connect failed."""
     _connects_fail_with(monkeypatch, paramiko.AuthenticationException("Authentication failed."))
     bridge = SshBridge()
-    assert bridge.connect("schwalby/a", "10.0.0.5", 22, "pilot") is False
-    assert bridge.connect_auth_failed("schwalby/a") is True
-    assert bridge.connect_auth_failed("schwalby/b") is False
+    assert bridge.connect("cmdly/a", "10.0.0.5", 22, "pilot") is False
+    assert bridge.connect_auth_failed("cmdly/a") is True
+    assert bridge.connect_auth_failed("cmdly/b") is False
 
     _connects_fail_with(monkeypatch, TimeoutError("timed out"))
-    assert bridge.connect("schwalby/a", "10.0.0.5", 22, "pilot") is False
-    assert bridge.connect_auth_failed("schwalby/a") is False
+    assert bridge.connect("cmdly/a", "10.0.0.5", 22, "pilot") is False
+    assert bridge.connect_auth_failed("cmdly/a") is False
 
 
 def test_run_command_flags_a_refused_login(monkeypatch) -> None:
@@ -270,10 +270,10 @@ def test_run_command_flags_a_refused_login(monkeypatch) -> None:
 
 
 def test_the_first_connection_to_a_new_host_can_remember_its_key(tmp_path, monkeypatch) -> None:
-    """Regression: on a station that had never accepted a host, every connect failed.
+    """Regression: on a computer that had never accepted a host, every connect failed.
 
     paramiko's save_host_keys reads the known_hosts file again before writing
-    it, and raised inside the missing-key policy while ``~/.corvus/known_hosts``
+    it, and raised inside the missing-key policy while ``~/.cmdly/known_hosts``
     did not exist yet. Nothing was ever saved, so the next attempt failed the
     same way. Only a laptop whose companion computers were already in
     ``~/.ssh/known_hosts`` could connect at all.

@@ -21,10 +21,13 @@ def test_a_button_is_completed():
     assert b["id"].startswith("b")
 
 
-def test_an_ssh_launcher_entry_keeps_running_over_ssh():
+def test_a_button_runs_here_in_a_terminal_unless_it_says_otherwise():
     b = L.coerce_button({"command": "x", "connection": "pi@10.0.0.2", "detach": True})
+    assert b["target"] == L.TARGET_LOCAL
+    assert b["connection"] == ""
+    assert b["mode"] == L.MODE_TERMINAL
+    b = L.coerce_button({"command": "x", "target": "ssh", "connection": "pi", "mode": "background"})
     assert b["target"] == L.TARGET_SSH
-    assert b["connection"] == "pi@10.0.0.2"
     assert b["mode"] == L.MODE_BACKGROUND
 
 

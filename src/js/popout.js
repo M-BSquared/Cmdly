@@ -6,10 +6,10 @@ window.Cmdly = window.Cmdly || {};
   own.
 
   A Cmdly.floatWindows frame lives inside the page, so it can go anywhere in
-  the app's window and nowhere else. That is right for a camera over the map
-  and wrong for one on a second monitor. So:
+  the app's window and nowhere else. That is right for a quick look and wrong
+  for a terminal on a second monitor. So:
 
-    desktop app  By default a camera or terminal opens straight away in a
+    desktop app  By default a terminal opens straight away in a
                  native window of its own (cmdly/app.py, MainBridge):
                  frameless, drawing the very same frame, and free to go
                  anywhere. With Settings, "Open inside the Cmdly window" on
@@ -22,8 +22,7 @@ window.Cmdly = window.Cmdly || {};
                  pop-up (window.open).
 
   The popped-out window is its own page (popout.html) with its own stream: a
-  camera fetches its own frames or opens its own WebRTC connection, a terminal
-  attaches its own SSE stream to the same SSH session. Nothing is moved between
+  terminal attaches its own WebSocket to the same session. Nothing is moved between
   documents, so nothing can be left half in one and half in the other.
 
   The two sides talk over a BroadcastChannel, which every page of this origin
@@ -37,7 +36,7 @@ window.Cmdly = window.Cmdly || {};
     dock    popout -> app: "put me back"; the app opens the frame again.
             Only a window that came out of the app offers it (the "dock"
             parameter of its address); one that opened on its own stays one.
-    close   app -> popout: close yourself (the map's camera button).
+    close   app -> popout: close yourself.
     focus   app -> popout: come to the front.
     reattach app -> popout: the SSH session behind you was replaced.
 */
@@ -153,7 +152,7 @@ Cmdly.popouts = (function () {
   // The keys the desktop app accepts for a native window (cmdly/app.py,
   // _POPOUT_KEY_RE). A key it would refuse is kept in the app instead of
   // being sent off to a window that never opens.
-  const KEY_RE = /^(video|term):[A-Za-z0-9_./@:-]{1,96}$/;
+  const KEY_RE = /^term:[A-Za-z0-9_./@:-]{1,96}$/;
 
   /** Whether `key` can name a native window. */
   function keyOk(key) { return typeof key === "string" && KEY_RE.test(key); }
@@ -184,7 +183,7 @@ Cmdly.popouts = (function () {
     return !(s && s.place === false);
   }
 
-  /** Whether a camera or terminal opens as a window of its own straight away. */
+  /** Whether a terminal opens as a window of its own straight away. */
   function opensOutside() {
     const n = native();
     return !inApp && !!(n && typeof n.openWindow === "function");
@@ -349,7 +348,7 @@ Cmdly.popouts = (function () {
     if (known.delete(key)) emit();
   }
 
-  /** Close every popped-out window of one kind ("video", "terminal"). */
+  /** Close every popped-out window of one kind ("terminal"). */
   function closeKind(kind) {
     keys(kind).forEach((key) => close(key));
   }

@@ -1,4 +1,4 @@
-"""Programs on this computer: the Local target of the Schwalby launcher.
+"""Programs on this computer: the Local target of the shelf.
 
 Covers :mod:`cmdly.local_shell` (a login shell on a pseudo-terminal, and the
 background runner), the SSH bridge keeping a local shell among its sessions,
@@ -124,9 +124,9 @@ def runner(monkeypatch):
 
 
 def test_a_program_that_finishes_at_once_answers_with_its_output(runner, tmp_path):
-    res = runner.run("echo corvus-run", str(tmp_path))
+    res = runner.run("echo cmdly-run", str(tmp_path))
     assert res["ok"] is True and res["exited"] is True and res["code"] == 0
-    assert "corvus-run" in res["output"]
+    assert "cmdly-run" in res["output"]
     assert runner.count() == 0
 
 
@@ -219,15 +219,15 @@ class _Screen:
 
 @needs_pty
 def test_a_local_shell_is_a_real_terminal(tmp_path):
-    session = LocalSession("schwalby/t", str(tmp_path), shell="/bin/sh")
+    session = LocalSession("cmdly/t", str(tmp_path), shell="/bin/sh")
     screen = _Screen()
     session.add_sub(screen)
     try:
         assert session.connect() is True
         assert session.connected
         assert session.host == local_shell.LOCAL_HOST
-        session.send("echo corvus-$((6*7)); pwd\n")
-        assert _wait(lambda: "corvus-42" in screen.text), screen.text
+        session.send("echo cmdly-$((6*7)); pwd\n")
+        assert _wait(lambda: "cmdly-42" in screen.text), screen.text
         assert _wait(lambda: str(tmp_path.resolve()) in screen.text or str(tmp_path) in screen.text)
         assert session.resize(120, 40) is True
         session.send("stty size; tty\n")
@@ -241,7 +241,7 @@ def test_a_local_shell_is_a_real_terminal(tmp_path):
 @needs_pty
 def test_ctrl_c_reaches_the_program_in_the_foreground(tmp_path):
     """Job control: without a controlling terminal, Ctrl-C would reach nothing."""
-    session = LocalSession("schwalby/c", str(tmp_path), shell="/bin/sh")
+    session = LocalSession("cmdly/c", str(tmp_path), shell="/bin/sh")
     screen = _Screen()
     session.add_sub(screen)
     try:
@@ -273,7 +273,7 @@ def _job_in(session: LocalSession, marker: Any, job: str = "sleep 60") -> int:
 @needs_pty
 @pytest.mark.parametrize("shell", _shells())
 def test_closing_a_local_shell_ends_what_runs_in_it(tmp_path, shell):
-    session = LocalSession("schwalby/k", str(tmp_path), shell=shell)
+    session = LocalSession("cmdly/k", str(tmp_path), shell=shell)
     assert session.connect()
     child = _job_in(session, tmp_path / "shell.pid")
     shell_pid = session._proc.pid
@@ -285,7 +285,7 @@ def test_closing_a_local_shell_ends_what_runs_in_it(tmp_path, shell):
 @needs_pty
 def test_closing_a_local_shell_ends_a_job_that_ignores_the_hangup(tmp_path):
     """Like ``nohup``: whatever the shell passes on, the job would outlive Cmdly."""
-    session = LocalSession("schwalby/n", str(tmp_path), shell="/bin/sh")
+    session = LocalSession("cmdly/n", str(tmp_path), shell="/bin/sh")
     assert session.connect()
     child = _job_in(session, tmp_path / "shell.pid", job="( trap '' HUP; exec sleep 60 )")
     started = time.monotonic()
@@ -299,7 +299,7 @@ def test_a_job_left_behind_by_exit_ends_with_the_window(tmp_path):
     """``exit`` ends the shell but not its background jobs. On Linux they keep
     the terminal and the window open; macOS revokes the terminal and the
     window ends by itself. Either way the job must not outlive it."""
-    session = LocalSession("schwalby/e", str(tmp_path), shell="/bin/sh")
+    session = LocalSession("cmdly/e", str(tmp_path), shell="/bin/sh")
     assert session.connect()
     child = _job_in(session, tmp_path / "shell.pid")
     shell_pid = session._proc.pid
@@ -311,14 +311,14 @@ def test_a_job_left_behind_by_exit_ends_with_the_window(tmp_path):
 
 @needs_pty
 def test_a_local_shell_in_a_missing_folder_says_why(tmp_path):
-    session = LocalSession("schwalby/m", str(tmp_path / "nope"), shell="/bin/sh")
+    session = LocalSession("cmdly/m", str(tmp_path / "nope"), shell="/bin/sh")
     assert session.connect() is False
     assert session.error.startswith("There is no folder")
 
 
 @pytest.mark.skipif(local_shell.HAVE_PTY, reason="only where there is no pseudo-terminal")
 def test_without_a_pseudo_terminal_the_shell_says_why():
-    session = LocalSession("schwalby/w")
+    session = LocalSession("cmdly/w")
     assert session.connect() is False
     assert session.error == local_shell.capabilities()["reason"]
 
@@ -335,21 +335,21 @@ def test_capabilities_say_whether_there_is_a_terminal():
 def test_the_bridge_keeps_a_local_shell_among_its_sessions(tmp_path):
     bridge = SshBridge()
     try:
-        assert bridge.connect_local("schwalby/b", str(tmp_path)) is True
+        assert bridge.connect_local("cmdly/b", str(tmp_path)) is True
         listed = {s["name"]: s for s in bridge.list_sessions()}
-        assert listed["schwalby/b"]["connected"] is True
-        assert listed["schwalby/b"]["host"] == "this computer"
+        assert listed["cmdly/b"]["connected"] is True
+        assert listed["cmdly/b"]["host"] == "this computer"
         screen = _Screen()
-        bridge.get_session("schwalby/b").add_sub(screen)
-        assert bridge.send("schwalby/b", "echo via-bridge\n") is True
+        bridge.get_session("cmdly/b").add_sub(screen)
+        assert bridge.send("cmdly/b", "echo via-bridge\n") is True
         assert _wait(lambda: "via-bridge" in screen.text)
         # Replaced under its name, like an SSH session that reconnects.
-        first = bridge.get_session("schwalby/b")
-        assert bridge.connect_local("schwalby/b", str(tmp_path)) is True
-        assert bridge.get_session("schwalby/b") is not first
+        first = bridge.get_session("cmdly/b")
+        assert bridge.connect_local("cmdly/b", str(tmp_path)) is True
+        assert bridge.get_session("cmdly/b") is not first
         assert not first.connected
-        assert bridge.disconnect("schwalby/b") is True
-        assert bridge.send("schwalby/b", "x\n") is False
+        assert bridge.disconnect("cmdly/b") is True
+        assert bridge.send("cmdly/b", "x\n") is False
     finally:
         bridge.shutdown()
 
@@ -358,8 +358,8 @@ def test_the_bridge_keeps_a_local_shell_among_its_sessions(tmp_path):
 def test_a_failed_local_shell_leaves_its_reason_on_the_bridge(tmp_path):
     bridge = SshBridge()
     try:
-        assert bridge.connect_local("schwalby/f", str(tmp_path / "nope")) is False
-        assert bridge.connect_error("schwalby/f").startswith("There is no folder")
+        assert bridge.connect_local("cmdly/f", str(tmp_path / "nope")) is False
+        assert bridge.connect_error("cmdly/f").startswith("There is no folder")
     finally:
         bridge.shutdown()
 
@@ -367,12 +367,12 @@ def test_a_failed_local_shell_leaves_its_reason_on_the_bridge(tmp_path):
 @needs_pty
 def test_shutting_the_bridge_down_ends_every_local_shell(tmp_path):
     bridge = SshBridge()
-    assert bridge.connect_local("schwalby/1", str(tmp_path))
-    assert bridge.connect_local("schwalby/2", str(tmp_path))
-    pids = [bridge.get_session(n)._proc.pid for n in ("schwalby/1", "schwalby/2")]
+    assert bridge.connect_local("cmdly/1", str(tmp_path))
+    assert bridge.connect_local("cmdly/2", str(tmp_path))
+    pids = [bridge.get_session(n)._proc.pid for n in ("cmdly/1", "cmdly/2")]
     bridge.shutdown()
     assert all(_wait(lambda p=p: _gone(p)) for p in pids)
-    assert bridge.connect_local("schwalby/3", str(tmp_path)) is False, "nothing new once it is closing"
+    assert bridge.connect_local("cmdly/3", str(tmp_path)) is False, "nothing new once it is closing"
 
 
 # ---------------------------------------------------------------------------
@@ -451,9 +451,9 @@ def test_stopping_on_windows_falls_back_to_kill_when_taskkill_cannot_run(monkeyp
 
 def _bundle_like_env(monkeypatch) -> str:
     """This process as a packaged build runs: the interpreter's own PYTHONHOME,
-    and the app folder on PYTHONPATH, next to an entry of the operator's."""
+    and the app folder on PYTHONPATH, next to an entry of the user's."""
     from cmdly.child_env import app_root
-    theirs = os.path.join(os.sep, "opt", "operator-tools")
+    theirs = os.path.join(os.sep, "opt", "user-tools")
     monkeypatch.setenv("PYTHONHOME", sys.base_prefix)
     monkeypatch.setenv("PYTHONPATH", os.pathsep.join([app_root(), theirs]))
     monkeypatch.setenv("QTWEBENGINE_CHROMIUM_FLAGS", "--no-sandbox")
@@ -473,7 +473,7 @@ def test_a_background_program_does_not_inherit_the_bundles_python(monkeypatch, r
 @needs_pty
 def test_the_terminal_shell_does_not_inherit_the_bundles_python(monkeypatch, tmp_path):
     theirs = _bundle_like_env(monkeypatch)
-    session = LocalSession("schwalby/env", str(tmp_path), shell="/bin/sh")
+    session = LocalSession("cmdly/env", str(tmp_path), shell="/bin/sh")
     screen = _Screen()
     session.add_sub(screen)
     try:

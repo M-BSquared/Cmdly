@@ -15,7 +15,7 @@ interpreter and Qt, all pointing inside the bundle:
   ``PySide6/__init__.py`` puts there so its Qt DLLs are found.
 
 A child inherits every one of them unless told otherwise, and for the programs
-Cmdly starts on the operator's behalf that is wrong: ``python3 tool.py`` from
+Cmdly starts on the user's behalf that is wrong: ``python3 tool.py`` from
 a launcher button loads the bundle's stdlib into a different interpreter and
 dies before its first line, a Qt program opened from the local terminal loads
 Cmdly's Qt libraries and plugins, and ``xdg-open`` on a KDE desktop is itself
@@ -23,9 +23,9 @@ a Qt program. So everything that starts one (the local shell, a background
 program, ffmpeg, the file manager, the browser) asks :func:`child_env` for its
 environment instead of passing ``os.environ`` on.
 
-What is kept is exactly what the operator's own environment had: only entries
+What is kept is exactly what the user's own environment had: only entries
 pointing into this Cmdly are taken out, and a list such as
-``LD_LIBRARY_PATH`` keeps whatever the operator had in it besides.
+``LD_LIBRARY_PATH`` keeps whatever the user had in it besides.
 
 stdlib only.
 """
@@ -91,7 +91,7 @@ def bundle_dirs(env: Mapping[str, str] | None = None, root: str | None = None,
     The app folder itself; the AppImage mount it is inside, if it is; the
     ``.app`` bundle it is inside, if it is; and PyInstaller's unpack folder in
     the Windows build. Never a system prefix such as ``/usr``: a development
-    run's interpreter lives there too, and the operator's own entries under it
+    run's interpreter lives there too, and the user's own entries under it
     are theirs.
     """
     env = os.environ if env is None else env
@@ -166,7 +166,7 @@ def child_env(env: Mapping[str, str] | None = None, *, root: str | None = None,
             out.pop(key)
 
     # Exact entries only, not everything under the app folder: PATH also
-    # carries the operator's own entries, an activated .venv among them.
+    # carries the user's own entries, an activated .venv among them.
     qt_dirs = qt_binding_dirs() if qt_dirs is None else qt_dirs
     path = out.get("PATH")
     if path is not None and qt_dirs:

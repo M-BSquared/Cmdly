@@ -4,11 +4,11 @@ Why the terminals need one
 --------------------------
 Chromium holds at most six HTTP/1.1 connections per host, and the pool is
 shared by every page of the profile: the app's window and every window taken
-out of it. Two are taken for good by the telemetry and event streams. A
+out of it. Some are taken for good by the page's own streams. A
 terminal used to take a third for its output stream (SSE), and each keystroke
 a request of its own on top. With four terminals open the six were gone, and
-from then on every request queued behind streams that never end: typing,
-map tiles and camera frames all stopped, and nothing said why.
+from then on every request queued behind streams that never end: typing
+and every other request stopped, and nothing said why.
 
 A WebSocket is not in that pool (Chromium counts them apart, with a limit in
 the hundreds), and carries the input as well. So a terminal is one WebSocket

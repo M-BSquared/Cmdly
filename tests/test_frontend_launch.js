@@ -42,11 +42,13 @@ test("previewLine shows where and how it runs", () => {
   assert.equal(L.previewLine({ target: "ssh", connection: "pi", mode: "background", command: "go" }), "ssh pi 'nohup go &'");
 });
 
-test("an old SSH launcher entry runs over SSH, detached as it was", () => {
-  assert.equal(L.coerceTarget({ connection: "pi" }), "ssh");
+test("a button runs here, in a terminal, unless it says otherwise", () => {
+  assert.equal(L.coerceTarget({ connection: "pi" }), "local");
   assert.equal(L.coerceTarget({}), "local");
-  assert.equal(L.coerceMode({ detach: true }), "background");
-  assert.equal(L.coerceMode({ mode: "terminal", detach: true }), "terminal");
+  assert.equal(L.coerceTarget({ target: "ssh" }), "ssh");
+  assert.equal(L.coerceMode({}), "terminal");
+  assert.equal(L.coerceMode({ detach: true }), "terminal");
+  assert.equal(L.coerceMode({ mode: "background" }), "background");
 });
 
 test("only a terminal button restarts", () => {

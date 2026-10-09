@@ -14,7 +14,8 @@ tint, src/css/themes.css), with KWin's blur behind it where the window
 manager honours the hint (:class:`cmdly.native_window.X11Effects`).
 A terminal
 opens in a window of its own by default, frameless and drawn by its page, the
-same frame as in Corvus GCS, which can go anywhere and be pinned above Cmdly.
+same frame as the one floating over the page, which can go anywhere and be
+pinned above Cmdly.
 
 Usage:
     python3 cmdly/app.py [PORT]
@@ -46,7 +47,7 @@ def chromium_flags(platform: str = sys.platform) -> list[str]:
     drivers (a lot of VMs and older laptops); SwiftShader is the software
     fallback when there is no usable GPU at all. On Linux the GPU sandbox is
     what keeps the GPU process from coming up in containers and on odd
-    drivers. An operator's own ``QTWEBENGINE_CHROMIUM_FLAGS`` wins outright.
+    drivers. A user's own ``QTWEBENGINE_CHROMIUM_FLAGS`` wins outright.
     """
     flags = ["--ignore-gpu-blocklist", "--enable-unsafe-swiftshader"]
     if platform.startswith("linux"):

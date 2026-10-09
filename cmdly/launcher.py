@@ -159,22 +159,15 @@ def public_connection(conn: dict[str, Any]) -> dict[str, Any]:
 
 
 def coerce_target(raw: dict[str, Any]) -> str:
-    """Where a saved button runs. One without a target that names a
-    connection came from an SSH-only launcher, so it runs over SSH."""
+    """Where a saved button runs: on this computer unless it says SSH."""
     target = raw.get("target")
-    if target in TARGETS:
-        return target
-    return TARGET_SSH if _text(raw.get("connection"), MAX_CONNECTION_NAME) else TARGET_LOCAL
+    return target if target in TARGETS else TARGET_LOCAL
 
 
 def coerce_mode(raw: dict[str, Any]) -> str:
-    """A button's run mode. ``detach`` is the older boolean for it."""
+    """A button's run mode: in a terminal unless it says background."""
     mode = raw.get("mode")
-    if mode in MODES:
-        return mode
-    if isinstance(raw.get("detach"), bool):
-        return MODE_BACKGROUND if raw["detach"] else MODE_TERMINAL
-    return MODE_TERMINAL
+    return mode if mode in MODES else MODE_TERMINAL
 
 
 def coerce_button(raw: Any) -> dict[str, Any] | None:

@@ -30,7 +30,7 @@ def test_the_file_is_readable_by_its_owner_only(tmp_path):
 def test_the_widget_builds_config_is_migrated(tmp_path):
     path = tmp_path / "config.json"
     write(path, {
-        "theme": "corvus_blue", "opacity": 0.9,
+        "theme": "blue", "opacity": 0.9,
         "buttons": [{"label": "Go", "command": "go", "target": "ssh", "connection": "pi"}],
         "companions": [{"id": "c1", "name": "Pi", "host": "10.0.0.2", "type": "ssh", "connection": "pi"}],
         "active_companion": "Pi",

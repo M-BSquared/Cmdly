@@ -28,7 +28,7 @@ A pseudo-terminal is POSIX only. On Windows the terminal is reported as
 unavailable, with the reason, and the background mode still works.
 
 Neither the shell nor a background program inherits the variables a packaged
-Cmdly runs with (see :mod:`cmdly.child_env`): they are the operator's
+Cmdly runs with (see :mod:`cmdly.child_env`): they are the user's
 programs, not part of Cmdly.
 
 Who may ask: only a process on this computer (see ``Handler._local_only``).
@@ -76,7 +76,7 @@ TERM_TIMEOUT_S = 2.0
 
 # Makes the pty the shell's controlling terminal, then becomes the shell. The
 # trampoline itself needs the bundle's variables to start (it is Cmdly's own
-# interpreter); the shell gets the operator's, which travel in SHELL_ENV_VAR
+# interpreter); the shell gets the user's, which travel in SHELL_ENV_VAR
 # rather than on the command line, where every account could read them (ps).
 SHELL_ENV_VAR = "CMDLY_SHELL_ENV"
 _TRAMPOLINE = (
@@ -88,7 +88,7 @@ _TRAMPOLINE = (
 
 
 def default_shell() -> str:
-    """The operator's login shell, or the system's."""
+    """The user's login shell, or the system's."""
     if sys.platform == "win32":
         return os.environ.get("COMSPEC") or "cmd.exe"
     shell = os.environ.get("SHELL", "")
@@ -128,7 +128,7 @@ def capabilities() -> dict[str, Any]:
 def shell_env(env: Mapping[str, str] | None = None, platform: str = sys.platform) -> dict[str, str]:
     """The environment the terminal's shell starts with.
 
-    The operator's own (:func:`cmdly.child_env.child_env`), a terminal type
+    The user's own (:func:`cmdly.child_env.child_env`), a terminal type
     xterm.js answers to, and a UTF-8 character set when the session named
     none. A program started from the dock or the file manager on macOS gets
     no ``LANG`` at all, and a shell without one shows every umlaut as an
@@ -154,7 +154,7 @@ def taskkill_command(pid: int, system_root: str | None = None) -> list[str]:
     """The command that ends *pid* and every process it started, on Windows.
 
     By its full path under the system folder: a bare ``taskkill`` is looked
-    for in the current folder first, which is the operator's.
+    for in the current folder first, which is the user's.
     """
     root = system_root if system_root is not None else os.environ.get("SystemRoot", "")
     exe = os.path.join(root, "System32", "taskkill.exe") if root else "taskkill"

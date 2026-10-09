@@ -2,7 +2,7 @@
 
 The launchers of the packaged builds point PYTHONHOME, PYTHONPATH, the library
 path and the Qt paths into the bundle. :mod:`cmdly.child_env` takes exactly
-those entries out again, and nothing the operator had set. The layouts below
+those entries out again, and nothing the user had set. The layouts below
 are the real ones: build-appimage.sh's AppRun, build-macos-app.sh's launcher,
 and a run from a checkout.
 """
@@ -26,10 +26,10 @@ def _join(*paths: str) -> str:
 
 
 MOUNT = _p("tmp", ".mount_Cmdly1")
-APP = _p("Applications", "Cmdly GCS.app")
+APP = _p("Applications", "Cmdly.app")
 APP_ROOT = os.path.join(APP, "Contents", "Resources", "app")
 APP_PY = os.path.join(APP, "Contents", "Resources", "python")
-CHECKOUT = _p("home", "pilot", "CmdlyGCS")
+CHECKOUT = _p("home", "pilot", "Cmdly")
 
 
 def test_the_appimage_launcher_variables_do_not_reach_a_child():
@@ -47,15 +47,15 @@ def test_the_appimage_launcher_variables_do_not_reach_a_child():
         "QTWEBENGINE_RESOURCES_PATH": os.path.join(qt, "resources"),
         "QTWEBENGINE_CHROMIUM_FLAGS": "--no-sandbox --disable-gpu-sandbox",
         "APPDIR": MOUNT,
-        "APPIMAGE": _p("home", "pilot", "Cmdly_GCS-x86_64.AppImage"),
-        "ARGV0": "Cmdly_GCS-x86_64.AppImage",
+        "APPIMAGE": _p("home", "pilot", "Cmdly-x86_64.AppImage"),
+        "ARGV0": "Cmdly-x86_64.AppImage",
         "OWD": _p("home", "pilot"),
     }
     out = child_env(env, root=MOUNT, prefixes=(os.path.join(MOUNT, "usr"),), meipass="")
     assert out == {
         "HOME": env["HOME"],
         "PATH": env["PATH"],
-        # The operator's own entry survives; the bundle's two are gone.
+        # The user's own entry survives; the bundle's two are gone.
         "LD_LIBRARY_PATH": ros,
     }
 
@@ -94,15 +94,15 @@ def test_pythonhome_is_dropped_only_when_it_is_this_interpreters():
     assert theirs["PYTHONHOME"] == _p("opt", "other")
 
 
-def test_the_qt_platform_is_dropped_only_when_corvus_chose_it():
+def test_the_qt_platform_is_dropped_only_when_cmdly_chose_it():
     chosen = {"QT_QPA_PLATFORM": "xcb;wayland", QPA_DEFAULT_ENV: "xcb;wayland"}
     assert child_env(chosen, root=CHECKOUT, prefixes=(), meipass="") == {}
-    operator = {"QT_QPA_PLATFORM": "wayland", QPA_DEFAULT_ENV: "xcb;wayland"}
-    assert child_env(operator, root=CHECKOUT, prefixes=(), meipass="") == {"QT_QPA_PLATFORM": "wayland"}
+    user = {"QT_QPA_PLATFORM": "wayland", QPA_DEFAULT_ENV: "xcb;wayland"}
+    assert child_env(user, root=CHECKOUT, prefixes=(), meipass="") == {"QT_QPA_PLATFORM": "wayland"}
 
 
 def test_the_windows_bootloader_variables_do_not_reach_a_child():
-    internal = _p("Program Files", "Cmdly GCS", "_internal")
+    internal = _p("Program Files", "Cmdly", "_internal")
     env = {
         "_PYI_APPLICATION_HOME_DIR": internal,
         "_PYI_PARENT_PROCESS_LEVEL": "1",
@@ -117,7 +117,7 @@ def test_the_windows_bootloader_variables_do_not_reach_a_child():
 def test_pyside6s_own_path_entry_does_not_reach_a_child():
     """PySide6 puts its package folder first on PATH on Windows. Only that goes.
 
-    An activated .venv inside the checkout is the operator's own entry, under
+    An activated .venv inside the checkout is the user's own entry, under
     the app folder or not, so it stays.
     """
     pyside = os.path.join(CHECKOUT, ".venv", "Lib", "site-packages", "PySide6")
@@ -129,7 +129,7 @@ def test_pyside6s_own_path_entry_does_not_reach_a_child():
 
 
 def test_pyside6s_path_entry_in_the_windows_build_does_not_reach_a_child():
-    internal = _p("Program Files", "Cmdly GCS", "_internal")
+    internal = _p("Program Files", "Cmdly", "_internal")
     pyside = os.path.join(internal, "PySide6")
     system = _p("Windows", "System32")
     env = {"PATH": _join(pyside, system), "SystemRoot": _p("Windows")}

@@ -33,14 +33,6 @@ logger = logging.getLogger("cmdly.config")
 THEMES = ("auto", "green", "blue", "orange", "pink", "light", "light-orange")
 DEFAULT_THEME = "blue"
 
-# The PySide build's theme ids, and what each became.
-_LEGACY_THEMES = {
-    "corvus": "green", "corvus_green": "green",
-    "corvus_blue": "blue", "midnight": "blue",
-    "corvus_orange": "orange", "corvus_pink": "pink",
-    "corvus_light": "light", "light_frosted": "light",
-}
-
 DEFAULT_UI: dict[str, Any] = {
     "theme": DEFAULT_THEME,
     # The frosted window: the desktop shows through it, blurred on macOS
@@ -77,7 +69,6 @@ def _bool(value: Any, fallback: bool) -> bool:
 def normalize_ui(raw: Any, legacy_theme: Any = None) -> dict[str, Any]:
     src = raw if isinstance(raw, dict) else {}
     theme = src.get("theme", legacy_theme)
-    theme = _LEGACY_THEMES.get(theme, theme)
     out = dict(DEFAULT_UI)
     out["theme"] = theme if theme in THEMES else DEFAULT_THEME
     for key in ("frosted_window", "frosted_terminals", "terminals_in_app", "reachable_only"):

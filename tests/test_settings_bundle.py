@@ -141,7 +141,7 @@ def test_parse_reads_a_setup_from_the_first_cmdly_export():
 
 
 def test_parse_reads_the_pyside_builds_spellings():
-    parsed = settings_bundle.parse({"theme": "corvus_green",
+    parsed = settings_bundle.parse({"theme": "green",
                                     "companion": {"name": "Pi", "host": "10.0.0.9"}})
     assert parsed["sections"] == ["companions", "appearance"]
     assert parsed["config"]["ui"]["theme"] == "green"

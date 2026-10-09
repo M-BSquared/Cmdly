@@ -4,20 +4,13 @@ window.Cmdly = window.Cmdly || {};
 /*
   Cmdly.termWindows — free-floating SSH terminals, one per session.
 
-  The panel's SSH tab is a single terminal: opening a session there replaces
-  whatever was in it, and getting to it means leaving the tab you were on. That
-  is the right shape for "connect to the companion computer and look around",
-  and the wrong one for a plugin that starts four programs — the SSH Launcher's
-  buttons each own a session, and sending the operator to one shared tab made
-  four independent programs share one window and hid the shelf that started
-  them.
-
-  So a session opened from a plugin gets a window of its own: it floats over
+  Every button on the shelf that runs in a terminal owns a session, and four
+  buttons that start four programs must not share one window or hide the shelf
+  that started them. So each session gets a window of its own: it floats over
   the app, it can be dragged and resized, several can be open at once, and the
-  tab underneath stays where it was. The frame is Cmdly.floatWindows, the same
-  one the camera windows use; the terminal inside it is the same
-  Cmdly.sshTerm over the same bridge, so everything that is true of the SSH
-  tab (a real pty, Ctrl-C, full-screen programs) is true here.
+  shelf underneath stays where it was. The frame is Cmdly.floatWindows; the
+  terminal inside it is Cmdly.sshTerm over the bridge, a real pty, so Ctrl-C
+  and full-screen programs work here.
 
   Two closes, deliberately different:
 
@@ -66,8 +59,6 @@ Cmdly.termWindows = (function () {
   }
 
   function addressOf(session) {
-    const panel = window.Cmdly && Cmdly.panel;
-    if (panel && typeof panel.sshAddress === "function") return panel.sshAddress(session);
     const host = String(session.host || "");
     if (!host) return "";
     const user = session.username ? session.username + "@" : "";
@@ -100,7 +91,7 @@ Cmdly.termWindows = (function () {
     // xterm is fetched on first use (js/lazy.js), so the first terminal of
     // the session waits for ~300 KB. Say so rather than showing an empty
     // frame, and come back through this same function once it is here — the
-    // isConnected check is the liveness test for a window the operator may
+    // isConnected check is the liveness test for a window the person may
     // well have closed while it was loading.
     if (!Cmdly.sshTerm.available()) {
       rec.bodyEl.textContent = "Loading terminal…";
@@ -122,7 +113,7 @@ Cmdly.termWindows = (function () {
     // The frame is only measurable once it is laid out; without this the pty
     // keeps the 80x24 the channel was opened with.
     rec.handle.fit();
-    // `quiet` is a window being repaired in the background — the operator is
+    // `quiet` is a window being repaired in the background — the person is
     // pressing a launch button, not asking to type in here.
     if (!quiet) rec.handle.focus();
   }
@@ -237,7 +228,7 @@ Cmdly.termWindows = (function () {
   /**
    * End the session, then close its window. This stops the remote program.
    * The window goes before its stream could report the end, so it is said
-   * here, for the SSH tab's cards and anything else showing the session.
+   * here, for the shelf's buttons and anything else showing the session.
    */
   function disconnect(name) {
     const done = () => {

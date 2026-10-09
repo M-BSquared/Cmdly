@@ -13,21 +13,21 @@ window.Cmdly = window.Cmdly || {};
   control at once.
 
   Grouping:
-    primitives  icon, iconButton, button, statusDot, badge
-    forms       label, field, select, setOptions, enhanceSelect, input, toggle
-                (every <select> becomes the app's dropdown — see watchSelects)
+    primitives  icon, iconButton, button, statusDot
+    forms       label, field, select, setOptions, enhanceSelect, input, slider,
+                toggle (every <select> becomes the app's dropdown — see
+                watchSelects)
     menus       menu, menuItem — the one dropdown surface and its rows, for
-                every list that opens over something (the select's own list,
-                the map's context menu, the map's layer switcher)
-    layout      card, section, sectionTitle, pageHeader, row, empty, actions
-    pickers     optionCards, optionList, navItem
+                every list that opens over something (the select's own list)
+    layout      row, actions
+    pickers     optionCards, segment
     overlays    modal, popover, infoHint
-    feedback    progress, message, toast, setBusy, setActive
-    charts      token, plotlyTheme, chartColors, onThemeChange, attachZoomHint
+    feedback    message, toast, setBusy
+    theme       token, onThemeChange
     helpers     clear, refreshIcons, uiScale (the interface-scale correction
                 every geometry read has to make — see its comment)
 
-  Version is never referenced here — the HUD/About read it from
+  Version is never referenced here — the About box reads it from
   GET /api/version, never from a JS literal.
 */
 Cmdly.ui = (function () {
@@ -58,16 +58,16 @@ Cmdly.ui = (function () {
 
   /*
     Small square icon button reusing the existing .icon-btn style from
-    main.css (not restyled here). variant "active" toggles .icon-btn.active.
+    components.css (not restyled here). variant "active" toggles .icon-btn.active.
   */
   function iconButton(name, opts) {
     const o = opts || {};
     const btn = document.createElement("button");
     btn.type = "button";
     /* `className` swaps the base class for a bespoke icon-button surface that
-       already exists in main.css (.mc-btn for the map controls, .nav-item for
-       the left rail) so those call sites can share this factory instead of
-       hand-rolling the same four lines. Default stays .icon-btn. */
+       already exists in the stylesheets, so that call site can share this
+       factory instead of hand-rolling the same four lines. Default stays
+       .icon-btn. */
     btn.className = o.className || "icon-btn";
     if (o.title) btn.title = o.title;
     /* An icon-only button has no text for a screen reader; fall back to the
@@ -116,8 +116,8 @@ Cmdly.ui = (function () {
     if (o.id) btn.id = o.id;
     if (o.title) btn.title = o.title;
     if (o.ariaLabel) btn.setAttribute("aria-label", o.ariaLabel);
-    /* Extra classes layer a screen-specific modifier (.setup-back, .tune-tab)
-       on top of the shared .btn foundation rather than replacing it. */
+    /* Extra classes layer a screen-specific modifier on top of the shared
+       .btn foundation rather than replacing it. */
     if (o.className) btn.className += " " + o.className;
     if (typeof o.onClick === "function") btn.addEventListener("click", o.onClick);
     return btn;
@@ -126,63 +126,13 @@ Cmdly.ui = (function () {
   /*
     Unified status indicator. Convention: class "status-dot" + data-level
     ("healthy" | "warning" | "critical" | "off" | "nav"). The matching CSS
-    in components.css also accepts the legacy bare class names for migration.
+    in components.css draws it.
   */
   function statusDot(level) {
     const span = document.createElement("span");
     span.className = "status-dot";
     if (level) span.setAttribute("data-level", level);
     return span;
-  }
-
-  /*
-    Generic surface card (.page-card-like): optional title row (with optional
-    icon), a body slot (string -> .page-card-desc, or a DOM node appended
-    directly), and an optional actions row (single node or array). Kept
-    generic on purpose; call sites migrate to it later.
-  */
-  function card(opts) {
-    const o = opts || {};
-    const el = document.createElement("div");
-    el.className = "page-card";
-
-    if (o.title || o.icon) {
-      const head = document.createElement("div");
-      head.className = "page-card-title";
-      head.style.display = "flex";
-      head.style.alignItems = "center";
-      head.style.gap = "8px";
-      if (o.icon) head.appendChild(icon(o.icon, 15));
-      if (o.title) head.appendChild(document.createTextNode(String(o.title)));
-      el.appendChild(head);
-    }
-
-    if (o.body != null && o.body !== "") {
-      if (typeof o.body === "string") {
-        const desc = document.createElement("div");
-        desc.className = "page-card-desc";
-        desc.textContent = o.body;
-        el.appendChild(desc);
-      } else {
-        el.appendChild(o.body);
-      }
-    }
-
-    if (o.actions) {
-      const row = document.createElement("div");
-      row.style.display = "flex";
-      row.style.flexWrap = "wrap";
-      row.style.gap = "8px";
-      row.style.marginTop = "12px";
-      if (Array.isArray(o.actions)) {
-        o.actions.forEach((a) => { if (a) row.appendChild(a); });
-      } else {
-        row.appendChild(o.actions);
-      }
-      el.appendChild(row);
-    }
-
-    return el;
   }
 
   /* ===================== forms ===================== */
@@ -266,7 +216,7 @@ Cmdly.ui = (function () {
 
   /* Replace a <select>'s options, preserving the current selection when it
      still exists. Split out of select() because every list that reloads from
-     the backend (serial ports, tile sources) needs exactly this and used to
+     the backend (the saved SSH connections) needs exactly this and used to
      re-implement the "remember prev, restore if still present" dance. */
   function setOptions(el, options, value) {
     if (!el) return;
@@ -317,9 +267,8 @@ Cmdly.ui = (function () {
   }
 
   /* ===== menuItem — one row of the app's dropdown =====
-     The row the flight bar's mode list, the map's layer switcher and the
-     map's context menu all draw: a leading state dot OR an icon, a label, and
-     an optional second line saying what the row will do or why it cannot be
+     The row every list that opens over something draws: a leading state dot OR
+     an icon, a label, and an optional second line saying what the row will do or why it cannot be
      used. Everything about how it looks is .option-item in components.css, so
      a row is the same row wherever it is opened from.
 
@@ -378,14 +327,10 @@ Cmdly.ui = (function () {
   /* ===== menu — the app's dropdown, as a surface anything can open =====
      The dropdown the app wears — glass surface, .option-item rows, one open
      list at a time, Escape and outside-press dismissal, roving focus and
-     type-ahead — was written inside enhanceSelect() for the flight bar's mode
-     picker. Every other list that opens over something then grew its own
-     copy: the map's context menu carried its own positioning, its own
-     document listeners and its own row styling, and the layer switcher had no
-     dismissal beyond a click elsewhere and a top offset hard-coded to the
-     rail button it was meant to hang under.
+     type-ahead — lives here once, so a list that opens over something does not
+     grow its own positioning, document listeners and row styling.
 
-     This is that behaviour, once. The component owns the surface, where it
+     This is that behaviour. The component owns the surface, where it
      goes, how it is dismissed and how the keyboard moves through it; the
      caller owns what is in it — render() fills the cleared surface and hands
      back the rows the keyboard should walk (menuItem() builds them).
@@ -404,21 +349,20 @@ Cmdly.ui = (function () {
                          or a function returning them, re-read on each place()
        matchAnchorWidth  false for a menu wider than its trigger (a rail icon)
        closeOnScroll     default true. False for a surface inside a host that
-                         does not scroll and repositions itself (the map).
+                         does not scroll and repositions itself.
        autofocus         default true — opening moves the keyboard onto the
                          current row. False for a surface opened by hover,
                          where taking the focus would be a decision the
-                         operator did not make.
+                         person did not make.
        typeahead         default true
        dismissKeys(e)    optional. True for a keydown that should close the
                          surface and then carry on to whoever else wants it,
-                         unstopped (the map menu gives the flight keys back).
+                         unstopped.
        onOpen() / onClose()
 
      open(anchor) takes {el} — a trigger the list drops out of — or {x, y}, a
-     point in the host's own pixels, which is what a menu anchored to a place
-     on the map needs. Both are re-measured by place(), so a caller whose
-     anchor moves (a panning map) calls place() with the new one. */
+     point in the host's own pixels. Both are re-measured by place(), so a
+     caller whose anchor moves calls place() with the new one. */
   function menu(opts) {
     const o = opts || {};
 
@@ -466,8 +410,8 @@ Cmdly.ui = (function () {
        divided back into it (see uiScale), while el.offsetWidth/scrollHeight
        are already unscaled and are used as they come. Without that division
        the surface was placed at its scaled coordinates and the zoom scaled
-       them AGAIN: at 150% the map's layer menu opened 366px the wrong side of
-       its button. GAP and EDGE stay unscaled on purpose, so the gap under a
+       them AGAIN: at 150% a menu opened 366px the wrong side of its
+       button. GAP and EDGE stay unscaled on purpose, so the gap under a
        dropdown grows with the interface exactly like every other padding. */
     function placeByElement(trigger) {
       if (typeof trigger.getBoundingClientRect !== "function") return;
@@ -482,9 +426,7 @@ Cmdly.ui = (function () {
          glass edges look stuck together rather than adjacent.
 
          A function is re-read on every placement, which is what a caller
-         needs when the distance depends on something measured — the map
-         rail's popovers clear the RAIL, not the button inside it, and only
-         the live layout knows how far apart those two are. */
+         needs when the distance depends on something measured. */
       const GAP = typeof o.gap === "function" ? Number(o.gap()) || 0
         : (typeof o.gap === "number" ? o.gap : 6);
       const EDGE = 8;
@@ -541,7 +483,7 @@ Cmdly.ui = (function () {
     }
 
     /* Re-measure and reposition. `next` replaces the anchor, which is how a
-       menu anchored to a ground point follows it while the map pans. An
+       menu anchored to a point follows it when that point moves. An
        anchor that does not parse leaves the current one alone — place() is
        also the window's resize handler, and that hands it an Event. */
     function place(next) {
@@ -575,7 +517,7 @@ Cmdly.ui = (function () {
       hostEl = host;
       build();
       /* Nothing to offer is nothing to open — an empty surface is a floating
-         rectangle the operator has to dismiss for no reason. */
+         rectangle the person has to dismiss for no reason. */
       if (!rows.length) return null;
 
       /* One list at a time, like a native select: a second menu opened from
@@ -599,7 +541,7 @@ Cmdly.ui = (function () {
         window.addEventListener("resize", onResize);
       }
       if (typeof o.onOpen === "function") o.onOpen();
-      /* A surface the operator opened by POINTING at something must not take
+      /* A surface the person opened by POINTING at something must not take
          the focus off whatever they were using — a hover is not a decision to
          move the keyboard. The arrow keys still reach into it (onKey is on the
          document while it is open), so it stays operable either way. */
@@ -669,8 +611,8 @@ Cmdly.ui = (function () {
       close(false);
     }
 
-    /* Captured on the document: the map and the modals listen for Escape and
-       arrow keys too, and a key aimed at an open menu must not reach them.
+    /* Captured on the document: the modals listen for Escape and arrow keys
+       too, and a key aimed at an open menu must not reach them.
        Registered only while the surface is open. */
     function onKey(e) {
       const key = e.key;
@@ -691,8 +633,8 @@ Cmdly.ui = (function () {
       if (key === "ArrowUp") { stopEvent(e); focusRow(nextEnabled(cursor, -1)); return; }
       if (key === "Home") { stopEvent(e); focusRow(nextEnabled(-1, 1)); return; }
       if (key === "End") { stopEvent(e); focusRow(nextEnabled(rows.length, -1)); return; }
-      /* Type-ahead: PX4's mode list is long and its names are distinct, so a
-         letter should jump the way it does in a native select. */
+      /* Type-ahead: a letter should jump to the row it starts, the way it does
+         in a native select. */
       if (o.typeahead === false) return;
       if (key && key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         const now = Date.now();
@@ -740,8 +682,7 @@ Cmdly.ui = (function () {
   /* ===== enhanceSelect — the app's own dropdown, over a native <select> =====
      A <select>'s open popup is the one control the design system cannot
      reach: the option list is drawn by the operating system, so it keeps the
-     platform's white sheet, radius and font whatever theme is on — the flight
-     bar's mode picker was a chrome-grey list dropped on a glass bar.
+     platform's white sheet, radius and font whatever theme is on.
 
      This replaces the popup, and only the popup. The <select> stays in the DOM
      and stays the state (value, options, disabled, the "change" event), so
@@ -749,8 +690,8 @@ Cmdly.ui = (function () {
      and a browser without the enhancement still gets a working control.
 
      The list itself is a ui.menu — the same surface, rows, dismissal and
-     keyboard as the map's context menu and the layer switcher; this function
-     is only the part that is specific to standing in for a <select>. */
+     keyboard as every other menu; this function is only the part that is
+     specific to standing in for a <select>. */
   function enhanceSelect(sel) {
     if (!sel) return null;
     if (sel.cmdlySelect) return sel.cmdlySelect;
@@ -816,9 +757,8 @@ Cmdly.ui = (function () {
       if (sel.disabled) list.close(false);
     }
 
-    /* The rows ARE .option-item — the same rows as the map's layer switcher —
-       so the list reads as a member of the family instead of a second,
-       nearly-identical menu style. */
+    /* The rows ARE .option-item, so the list reads as a member of the menu
+       family instead of a second, nearly-identical menu style. */
     function buildRows(surface) {
       return options().map((o) => {
         const row = menuItem({
@@ -876,9 +816,8 @@ Cmdly.ui = (function () {
         openList();
       }
     });
-    /* Anything that changes the select — a repopulated mode list, a restored
-       selection, the disabled flag app.js sets while PX4 acknowledges — has
-       to reach the trigger, and none of it is an event we could listen for. */
+    /* Anything that changes the select — a repopulated list, a restored
+       selection, a disabled flag — has to reach the trigger, and none of it is an event we could listen for. */
     sel.addEventListener("change", syncTrigger);
     if (typeof MutationObserver === "function") {
       const mo = new MutationObserver(() => {
@@ -902,14 +841,11 @@ Cmdly.ui = (function () {
   }
 
   /* ===== enhanceSelects — the dropdown, adopted by the whole UI =====
-     enhanceSelect() was written for one control, the flight bar's mode
-     picker, and only that control ever called it. Every other <select> kept
-     the operating system's popup, so a single screen could show both: the
-     logs toolbar's "Sort" picker dropped a white platform list out of a glass
-     bar styled in the theme's colours.
+     A <select> that nobody passed to enhanceSelect() keeps the operating
+     system's popup, so a single screen could show both a glass list and a
+     white platform one.
 
-     The fix is not fifteen extra call sites (and a plugin's select left
-     behind anyway) but applying the enhancement where selects appear — once
+     The fix is not an extra call site per select but applying the enhancement where selects appear — once
      over the document, then to whatever is added to it afterwards. A caller
      keeps writing Cmdly.ui.select() or plain <select> markup and gets the
      app's dropdown without knowing this exists.
@@ -933,8 +869,8 @@ Cmdly.ui = (function () {
 
   let selectWatcher = null;
 
-  /* Enhance what is on the page now, and keep enhancing: every setup screen,
-     modal and plugin builds its controls long after boot, and several rebuild
+  /* Enhance what is on the page now, and keep enhancing: every form and
+     modal builds its controls long after boot, and several rebuild
      them on each render. The observer costs one pass over the added subtree;
      enhanceIfPlain() is idempotent, so the wrapper enhanceSelect() itself
      inserts comes back through here and is ignored.
@@ -1001,7 +937,7 @@ Cmdly.ui = (function () {
      hidden input to keep in sync. `onChange` receives the NEW state and may
      return a promise; while that promise is pending the switch is disabled
      and shows the state it is moving to, and a rejection snaps it back — an
-     operator must never be left looking at an "on" switch that the backend
+     person must never be left looking at an "on" switch that the backend
      refused. Returns {el, setValue, getValue}. */
   function toggle(opts) {
     const o = opts || {};
@@ -1061,7 +997,7 @@ Cmdly.ui = (function () {
 
      Two callbacks because dragging and committing are different events:
      `onInput` fires on every step the thumb crosses (live preview) and
-     `onChange` only when the operator lets go (persist). A label click fires
+     `onChange` only when the person lets go (persist). A label click fires
      both, in that order.
 
      Returns {el, setValue, getValue}. */
@@ -1194,44 +1130,6 @@ Cmdly.ui = (function () {
 
   /* ===================== layout ===================== */
 
-  /* Page title + one-line subtitle. Text is set through textContent, never
-     innerHTML, so a value that came from the backend cannot inject markup. */
-  function pageHeader(title, subtitle) {
-    const el = document.createElement("div");
-    el.className = "page-header";
-    const t = document.createElement("div");
-    t.className = "page-title";
-    t.textContent = String(title == null ? "" : title);
-    el.appendChild(t);
-    if (subtitle) {
-      const s = document.createElement("div");
-      s.className = "page-subtitle";
-      s.textContent = String(subtitle);
-      el.appendChild(s);
-    }
-    return el;
-  }
-
-  function sectionTitle(text) {
-    const el = document.createElement("div");
-    el.className = "page-section-title";
-    el.textContent = String(text == null ? "" : text);
-    return el;
-  }
-
-  /* A titled page section. `body` is appended as-is when it is a node; when
-     it is a string it becomes a card with that description, which is the
-     shape every "nothing here yet" section in the app wanted. */
-  function section(opts) {
-    const o = opts || {};
-    const el = document.createElement("div");
-    el.className = "page-section";
-    if (o.title) el.appendChild(sectionTitle(o.title));
-    const body = (typeof o.body === "string") ? card({ body: o.body }) : o.body;
-    if (body) el.appendChild(body);
-    return el;
-  }
-
   /* Key/value row. Returns the row; the value node is reachable through
      .querySelector(".page-row-value") for live updates. */
   function row(labelText, value) {
@@ -1245,14 +1143,6 @@ Cmdly.ui = (function () {
     v.textContent = String(value == null ? "" : value);
     el.appendChild(l);
     el.appendChild(v);
-    return el;
-  }
-
-  /* Muted placeholder line for an empty list / unavailable data. */
-  function empty(text) {
-    const el = document.createElement("div");
-    el.className = "page-card-desc";
-    el.textContent = String(text == null ? "" : text);
     return el;
   }
 
@@ -1271,8 +1161,7 @@ Cmdly.ui = (function () {
   /* ===================== pickers ===================== */
 
   /*
-    Grid of selectable cards — the picker behind the theme chooser and the map
-    service chooser. Each option is {id, label, desc, swatch}; `swatch` is an
+    Grid of selectable cards — the picker behind the theme chooser. Each option is {id, label, desc, swatch}; `swatch` is an
     array of CSS colors rendered as a stacked preview chip (a theme's palette)
     or a single color string. Exactly one card carries .selected at a time and
     the group is a real radiogroup, so arrow keys and screen readers work.
@@ -1422,128 +1311,13 @@ Cmdly.ui = (function () {
       },
     };
   }
-
-  /*
-    Vertical list of single-line choices with a leading state dot — the map
-    layer switcher's shape. Same contract as optionCards: exactly one active,
-    returns {el, setValue, getValue}.
-  */
-  function optionList(opts) {
-    const o = opts || {};
-    const el = document.createElement("div");
-    el.className = "option-list";
-    el.setAttribute("role", "radiogroup");
-    if (o.ariaLabel) el.setAttribute("aria-label", o.ariaLabel);
-
-    let value = o.value;
-    const items = [];
-
-    (o.options || []).forEach((op) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "option-item";
-      b.dataset.value = op.id;
-      b.setAttribute("role", "radio");
-      const dot = document.createElement("span");
-      dot.className = "option-item-dot";
-      b.appendChild(dot);
-      const text = document.createElement("span");
-      text.className = "option-item-label";
-      text.textContent = String(op.label == null ? op.id : op.label);
-      b.appendChild(text);
-      b.addEventListener("click", () => {
-        setValue(op.id);
-        if (typeof o.onChange === "function") o.onChange(op.id);
-      });
-      items.push(b);
-      el.appendChild(b);
-    });
-
-    function setValue(next) {
-      value = next;
-      items.forEach((b) => {
-        const on = b.dataset.value === String(next);
-        b.classList.toggle("active", on);
-        b.setAttribute("aria-checked", on ? "true" : "false");
-        b.tabIndex = on ? 0 : -1;
-      });
-      if (!items.some((b) => b.classList.contains("active")) && items.length) {
-        items[0].tabIndex = 0;
-      }
-    }
-    setValue(value);
-
-    return { el, setValue, getValue: () => value };
-  }
-
-  /*
-    Large clickable tile: icon chip, title, optional description, optional
-    trailing chevron. The Setup grid and the Plugins grid are the same control
-    laid out differently (row vs column), so they share this factory and the
-    .tile interaction recipe in components.css; `className` adds the layout
-    modifier (.setup-tile / .plugin-card) on top.
-  */
-  function tile(opts) {
-    const o = opts || {};
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "tile" + (o.className ? " " + o.className : "");
-    if (o.ariaLabel || o.title) btn.setAttribute("aria-label", o.ariaLabel || o.title);
-
-    if (o.icon) {
-      const wrap = document.createElement("span");
-      wrap.className = "tile-icon";
-      /* "auto" so the per-layout icon size in components.css/main.css wins —
-         the two grids use different icon sizes. */
-      wrap.appendChild(icon(o.icon, "auto"));
-      btn.appendChild(wrap);
-    }
-
-    const body = document.createElement("div");
-    body.className = "tile-body";
-    if (o.title) {
-      const h = document.createElement("span");
-      h.className = "tile-title";
-      h.textContent = String(o.title);
-      body.appendChild(h);
-    }
-    if (o.desc) {
-      const d = document.createElement("span");
-      d.className = "tile-desc";
-      d.textContent = String(o.desc);
-      body.appendChild(d);
-    }
-    btn.appendChild(body);
-
-    if (o.chevron) btn.appendChild(icon("chevron-right", "auto"));
-    if (typeof o.onClick === "function") btn.addEventListener("click", o.onClick);
-    return btn;
-  }
-
-  /* Left-rail navigation button (icon over label). */
-  function navItem(opts) {
-    const o = opts || {};
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "nav-item" + (o.active ? " active" : "");
-    btn.dataset.nav = o.id;
-    if (o.title) btn.title = o.title;
-    btn.appendChild(icon(o.icon));
-    const lbl = document.createElement("span");
-    lbl.className = "nav-label";
-    lbl.textContent = String(o.label == null ? "" : o.label);
-    btn.appendChild(lbl);
-    if (typeof o.onClick === "function") btn.addEventListener("click", o.onClick);
-    return btn;
-  }
-
   /* ===================== overlays ===================== */
 
   /*
     Modal dialog: dimmed scrim + centred glass panel. One implementation for
-    every dialog in the app (SSH add, motor-calibration confirm, offline map,
-    parameter export), which previously each hand-rolled their own overlay,
-    scrim, close button and Escape handling.
+    every dialog in the app (button editor, connection editor, confirmations),
+    so none of them hand-rolls its own overlay, scrim, close button and Escape
+    handling.
 
     opts: {title, body, actions, size, onClose, dismissable, mount}
       body       node (or string -> a muted paragraph)
@@ -1551,7 +1325,7 @@ Cmdly.ui = (function () {
       size       "sm" | "md" | "lg" — dialog width
       onClose    called after the dialog is removed, for any reason
       dismissable  false pins the dialog open: no backdrop click, no Escape,
-                 no close button. For a confirm the operator must answer.
+                 no close button. For a confirm the person must answer.
       mount      parent to append to (default document.body). The overlay is
                  position:fixed, so it covers the viewport whichever parent it
                  hangs from; a screen that tears its own subtree down passes
@@ -1611,7 +1385,7 @@ Cmdly.ui = (function () {
     }
 
     /* Captured on the document so Escape closes the dialog no matter where
-       focus sits — a click on the map behind it would otherwise steal the
+       focus sits — a click on the page behind it would otherwise steal the
        key. Registered only while the dialog is mounted. */
     function onKey(e) {
       if (e.key === "Escape" && dismissable) {
@@ -1650,12 +1424,10 @@ Cmdly.ui = (function () {
 
   /* ===== popover — the explainer that only appears when it is asked for =====
      A screen full of rows each carrying two lines of prose is a screen the
-     operator has to read before they can scan it: the LINK tab's four preset
-     endpoints filled a whole card because every one of them explained itself
-     out loud, permanently. The explanation still has to be there — a preset
-     nobody can tell apart from the next one is a button that produces a 400 —
-     so it moves off the row and behind a hint the pointer or the keyboard
-     opens.
+     person has to read before they can scan it: a form whose every field
+     explains itself out loud, permanently, fills the whole window. The
+     explanation still has to be there, so it moves off the row and behind a
+     hint the pointer or the keyboard opens.
 
      This is the generic half: it attaches to ANY anchor (a hint icon, a field
      caption, a status chip) and owns only the surface and when it is on
@@ -1675,7 +1447,7 @@ Cmdly.ui = (function () {
      that used to outstay its welcome — it hung under the anchor exactly where
      the pointer left, caught its own enter event and cancelled the close it
      had just scheduled, so brushing a hint held a sheet open until the
-     operator hunted for somewhere else to point. A PRESS — a click, a tap, a
+     person hunted for somewhere else to point. A PRESS — a click, a tap, a
      keyboard focus — is a request to read: it opens at once, pins the sheet
      so the pointer can enter it and select the text, and closes only on
      Escape, a click outside, or a second press.
@@ -1872,7 +1644,7 @@ Cmdly.ui = (function () {
       hide();
     }
     /* Captured, like the dropdown's: Escape belongs to the topmost transient
-       surface, and the map and the modals listen for it too. */
+       surface, and the modals listen for it too. */
     function onKey(e) {
       if (!e || e.key !== "Escape") return;
       if (typeof e.preventDefault === "function") e.preventDefault();
@@ -1900,7 +1672,7 @@ Cmdly.ui = (function () {
     anchor.addEventListener("blur", () => { fromPointer = false; hide(); });
     /* A touch screen has no hover at all, so the tap has to do it. A press on
        a sheet the pointer had already opened pins it rather than closing it:
-       the operator reaching for a hint that is already showing wants to keep
+       the person reaching for a hint that is already showing wants to keep
        it, not dismiss it. */
     anchor.addEventListener("click", (e) => {
       if (typeof e.preventDefault === "function") e.preventDefault();
@@ -1967,56 +1739,18 @@ Cmdly.ui = (function () {
   /* ===================== feedback ===================== */
 
   /*
-    Determinate progress bar with a "done / total (pct)" caption. Returns
-    {el, set, reset}; `set(done, total)` clamps the percentage so a backend
-    that over-reports cannot push the fill past 100%.
-  */
-  function progress(opts) {
-    const o = opts || {};
-    const el = document.createElement("div");
-    el.className = "ui-progress";
-    if (o.hidden) el.hidden = true;
-    const bar = document.createElement("div");
-    bar.className = "progress-bar";
-    const fill = document.createElement("div");
-    fill.className = "progress-bar-fill";
-    bar.appendChild(fill);
-    el.appendChild(bar);
-    const text = document.createElement("div");
-    text.className = "ui-progress-text";
-    el.appendChild(text);
-
-    function set(done, total) {
-      const d = Number(done) || 0;
-      const t = Number(total) || 0;
-      const pct = t > 0 ? Math.max(0, Math.min(100, Math.round((d / t) * 100))) : 0;
-      fill.style.width = pct + "%";
-      text.textContent = `${d} / ${t} (${pct}%)`;
-      return pct;
-    }
-    function reset() { set(0, 0); }
-    reset();
-
-    return { el, fill, text, set, reset };
-  }
-
-  /*
-    Toast — a transient, self-dismissing notice built to the same anatomy as a
-    row on the notification board (glass surface, leading column with the
-    level icon and its severity mark, then the text, then a dismiss), for
-    messages that are not vehicle/flight state and so have no business sitting
-    in that board (a UI hint like "double-click to zoom back out"). Any part of
-    the app can call this; it mounts its own stack on <body> the first time it
-    is used.
+    Toast — a transient, self-dismissing notice (glass surface, leading column
+    with the level icon and its severity mark, then the text, then a dismiss).
+    Any part of the app can call this; it mounts its own stack on <body> the
+    first time it is used.
 
     opts: {level: "info" | "warning" | "critical", title, message, duration, onClose}
       level     picks the icon, accent colour and default title/duration.
       title     overrides the default ("Info" / "Warning" / "Error").
       duration  ms before it auto-dismisses; 0 pins it open. Omit to use the
                 level's default. A critical stands longest, but it goes too:
-                the board and its red badge are what keep an error, and a
-                stack of pinned cards over the map was the operator's to clear
-                by hand, one by one, before they could see the map again.
+                a stack of pinned cards would be the person's to clear by
+                hand, one by one, before they could see the window again.
       onClose   called once when the toast goes, however it goes.
 
     At most TOAST_STACK_MAX stand at once. A new one always shows; the one
@@ -2034,32 +1768,7 @@ Cmdly.ui = (function () {
     return toastStack;
   }
 
-  /* The notification popover and the toast stack share a corner by default.
-     If the popover happens to be open when a toast fires, drop the stack
-     below it instead of drawing over it — an operator who opened the board
-     to read a warning should not have a hint toast blot it out. */
-  function repositionToastStack(stack) {
-    const popover = document.getElementById("warningsPopover");
-    if (!popover || popover.hidden || typeof popover.getBoundingClientRect !== "function") {
-      stack.style.top = "";
-      return;
-    }
-    /* The board's rect comes back scaled and this `top` is written unscaled,
-       so at 150% an undivided bottom edge dropped the stack half a screen
-       below the board it was meant to clear. */
-    const rect = unscaledRect(popover, uiScale());
-    stack.style.top = rect.height > 0 ? Math.round(rect.bottom + 10) + "px" : "";
-  }
-  /* The popover opens, grows and closes after a toast has been placed, and a
-     stack placed for a closed or shorter board then covers its last rows. The
-     board calls this whenever its size changes. */
-  function repositionToasts() {
-    if (toastStack && toastStack.isConnected) repositionToastStack(toastStack);
-  }
-  /* The level's icon, default title and default lifetime. The icons are the
-     same three the notification board picks from (src/js/topbar.js) — a
-     warning may not be a triangle in one place and something else in the
-     other. */
+  /* The level's icon, default title and default lifetime. */
   const TOAST_ICON = { info: "info", warning: "triangle-alert", critical: "octagon-alert" };
   const TOAST_TITLE = { info: "Info", warning: "Warning", critical: "Error" };
   const TOAST_DURATION = { info: 4500, warning: 6000, critical: 20000 };
@@ -2075,11 +1784,10 @@ Cmdly.ui = (function () {
     el.dataset.level = level;
     el.setAttribute("role", level === "critical" ? "alert" : "status");
 
-    /* Built as a board row is built — icon, text, dismiss as three children of
-       the card — rather than as a header strip with the message hanging under
-       it. That is what lets the severity mark be the same rule in both places:
-       it is drawn on the card and threaded through an icon centred on the
-       card, which only works if the icon is the card's own first column. */
+    /* Icon, text, dismiss as three children of the card, rather than a header
+       strip with the message hanging under it. The severity mark is drawn on
+       the card and threaded through an icon centred on the card, which only
+       works if the icon is the card's own first column. */
     const iconWrap = document.createElement("div");
     iconWrap.className = "ui-toast-icon " + level;
     iconWrap.setAttribute("aria-hidden", "true");
@@ -2104,7 +1812,6 @@ Cmdly.ui = (function () {
     el.append(iconWrap, text, closeBtn);
 
     const host = toastHost();
-    repositionToastStack(host);
     host.appendChild(el);
     refreshIcons();
 
@@ -2163,15 +1870,15 @@ Cmdly.ui = (function () {
     return { el, show, hide };
   }
 
-  /* ===================== charts ===================== */
+  /* ===================== theme ===================== */
 
   /**
    * Read a design token off the document root.
    *
-   * Plotly draws into a canvas/SVG it owns and takes colors as literal
-   * strings, so it is the one place in the app that cannot simply reference
-   * var(--token) — the values have to be resolved and handed over. That makes
-   * this the bridge between themes.css and every chart.
+   * The terminal (xterm) draws into a canvas and takes colors as literal
+   * strings, so it cannot simply reference var(--token) — the values have to
+   * be resolved and handed over. That makes this the bridge between
+   * themes.css and the terminals.
    */
   function token(name, fallback) {
     try {
@@ -2183,58 +1890,15 @@ Cmdly.ui = (function () {
   }
 
   /**
-   * The themed half of a Plotly layout: surfaces, type, grid and axis colors,
-   * all resolved from the active theme. Callers merge their own margins,
-   * titles and axis ranges on top.
-   *
-   * Fallbacks are the dark-theme values, so a chart drawn before the
-   * stylesheet has applied still looks deliberate rather than Plotly-default
-   * white-on-white.
-   */
-  function plotlyTheme() {
-    const surface = token("--surface-1", "#11161D");
-    const text = token("--text-2", "#A5ADB8");
-    const muted = token("--text-3", "#69737F");
-    const grid = token("--border-soft", "#20262E");
-    const axis = token("--border", "#2A3038");
-    return {
-      paper_bgcolor: surface,
-      plot_bgcolor: surface,
-      font: { color: text, family: "JetBrains Mono, monospace", size: 10 },
-      xaxis: {
-        gridcolor: grid, zerolinecolor: axis, linecolor: axis,
-        tickfont: { size: 9, color: muted },
-      },
-      yaxis: {
-        gridcolor: grid, zerolinecolor: axis, linecolor: axis,
-        tickfont: { size: 9, color: muted },
-      },
-    };
-  }
-
-  /** Series colors for charts, from the semantic palette. Each theme retunes
-   *  these, so a chart drawn in the light theme uses its darker, saturated
-   *  variants rather than the dark theme's glowing ones. */
-  function chartColors() {
-    return {
-      nav: token("--nav", "#4CC9FF"),
-      healthy: token("--healthy", "#45D483"),
-      warning: token("--warning", "#F5C842"),
-      critical: token("--critical", "#FF514D"),
-      accent: token("--accent", "#3DA876"),
-    };
-  }
-
-  /**
-   * Subscribe to theme changes. Charts hold resolved color strings, so unlike
-   * everything else in the app they do not restyle themselves when the theme
-   * attribute flips — they have to be told to redraw. Returns an unsubscribe.
+   * Subscribe to theme changes. Terminals hold resolved color strings, so
+   * unlike everything else in the app they do not restyle themselves when the
+   * theme attribute flips — they have to be told to redraw. Returns an
+   * unsubscribe.
    */
   function onThemeChange(fn) {
     if (typeof fn !== "function") return function () {};
-    // Guarded like every other helper here: a plugin (the documented extension
-    // point) may run somewhere without a full window, and a missing theme
-    // listener must degrade to "charts keep their current colors", never throw.
+    // Guarded like every other helper here: a missing theme listener must
+    // degrade to "terminals keep their current colors", never throw.
     if (typeof window === "undefined" || typeof window.addEventListener !== "function") {
       return function () {};
     }
@@ -2245,31 +1909,6 @@ Cmdly.ui = (function () {
         window.removeEventListener("cmdly:themechange", handler);
       }
     };
-  }
-
-  /* Plotly's own built-in zoom hint (its "notifier" toast) is unstyled and
-     positions itself off the chart, over whatever else happens to be on the
-     page — plotlyConfig() turns it off (showTips: false) everywhere. This is
-     its replacement: the app's own toast, shown once per session the first
-     time an operator box-zooms any chart, on whichever host asks for it.
-     Attaching twice on the same host (a live chart redraws on every sample)
-     is a no-op, tracked by identity rather than a flag on the element so a
-     plugin's plain object host cannot collide with it. */
-  const zoomHintHosts = (typeof WeakSet === "function") ? new WeakSet() : null;
-  let zoomHintShown = false;
-  function attachZoomHint(host) {
-    if (!host || typeof host.on !== "function") return;
-    if (zoomHintHosts) {
-      if (zoomHintHosts.has(host)) return;
-      zoomHintHosts.add(host);
-    }
-    host.on("plotly_relayout", (ev) => {
-      if (zoomHintShown || !ev) return;
-      const zoomedIn = Object.keys(ev).some((k) => /^[xy]axis\d*\.range\[/.test(k));
-      if (!zoomedIn) return;
-      zoomHintShown = true;
-      toast({ level: "info", message: "Double-click to zoom back out" });
-    });
   }
 
   /* ===================== helpers ===================== */
@@ -2288,8 +1927,8 @@ Cmdly.ui = (function () {
                 below <body> is laid out in, which the zoom then multiplies.
 
     A measurement taken in one and written into the other is multiplied (or
-    divided) by the scale a second time, which is what put the map's layer
-    menu a third of a screen away from the button that opened it at 150%.
+    divided) by the scale a second time, which is what put a menu a third of a
+    screen away from the button that opened it at 150%.
     Anything that mixes them divides by this; anything staying inside one
     space needs it not at all.
 
@@ -2343,67 +1982,14 @@ Cmdly.ui = (function () {
     }
   }
 
-  /* Toggle the ACK-wait / in-flight state on an existing button: .is-busy
-     class plus the disabled property so it dims, shows the pulse ring, and
-     refuses further clicks. Pure DOM, no state. */
+  /* Toggle the in-flight state on an existing button: .is-busy class plus the
+     disabled property so it dims, shows the pulse ring, and refuses further
+     clicks. Pure DOM, no state. */
   function setBusy(btn, busy) {
     if (!btn) return;
     const on = !!busy;
     btn.classList.toggle("is-busy", on);
     btn.disabled = on;
-  }
-
-  /* Toggle the active/filled toggle state (e.g. PLAN engaged). */
-  function setActive(btn, active) {
-    if (!btn) return;
-    btn.classList.toggle("is-active", !!active);
-  }
-
-
-  /**
-   * Where *el* sits inside *ancestor*, in layout pixels: {left, top}. Walks
-   * the offsetParent chain, so a hovered or pressed element (which carries a
-   * transform) is measured where it is laid out, not where it is drawn, and
-   * the answer is in the same pixels as the style.left of anything placed in
-   * *ancestor*, whatever the interface zoom is.
-   */
-  function offsetWithin(el, ancestor) {
-    let left = 0;
-    let top = 0;
-    for (let node = el; node && node !== ancestor; node = node.offsetParent) {
-      left += node.offsetLeft;
-      top += node.offsetTop;
-    }
-    return { left, top };
-  }
-
-  /* Keep a .flight-actions bar on ONE ROW inside the room it actually has.
-
-     Both bars in the application are this bar — the Home tab's flight actions
-     and the planner's tools — and both sit on a map column whose width is not
-     the window's: opening the right-hand panel narrows it without the window
-     moving a pixel, which is why the test is a measurement and never a
-     viewport media query.
-
-     Two steps down, in .flight-actions.is-tight / .is-compact: the shared
-     button width goes first, the captions only if that is still not enough.
-     Both are cleared before measuring, because a bar that has already been
-     narrowed measures narrow and would never widen again once it had shrunk
-     once.
-
-     `room` is the width to fit into; without one the bar's own client width is
-     used, which is what a bar capped by a max-width is already limited to. */
-  function fitBar(bar, room) {
-    if (!bar || !bar.classList) return;
-    const space = room == null ? bar.clientWidth : room;
-    if (!(space > 0)) return;
-    const isTight = bar.classList.contains("is-tight");
-    const isCompact = bar.classList.contains("is-compact");
-    if (!isTight && !isCompact && bar.scrollWidth <= space) return;
-    bar.classList.remove("is-tight", "is-compact");
-    if (bar.scrollWidth <= space) return;
-    bar.classList.add("is-tight");
-    if (bar.scrollWidth > space) bar.classList.add("is-compact");
   }
 
   return {
@@ -2426,38 +2012,22 @@ Cmdly.ui = (function () {
     slider,
     toggle,
     // layout
-    card,
-    section,
-    sectionTitle,
-    pageHeader,
     row,
-    empty,
     actions,
     // pickers
     optionCards,
-    optionList,
     segment,
-    navItem,
-    tile,
     // overlays
     modal,
     popover,
     infoHint,
     // feedback
-    progress,
     message,
     toast,
-    repositionToasts,
     setBusy,
-    setActive,
-    fitBar,
-    offsetWithin,
-    // charts
+    // theme
     token,
-    plotlyTheme,
-    chartColors,
     onThemeChange,
-    attachZoomHint,
     // helpers
     clear,
     refreshIcons,

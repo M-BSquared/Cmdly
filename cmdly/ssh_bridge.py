@@ -11,7 +11,7 @@ behave the way they do in a terminal.
 Two details exist for that terminal: a bounded **replay buffer** of recent
 output, handed to every new subscriber so a stream opened after the
 connection still shows the login banner and the first prompt; and
-``resize``, which tells the remote pty how large the operator's terminal
+``resize``, which tells the remote pty how large the user's terminal
 actually is so full-screen programs wrap correctly.
 """
 from __future__ import annotations
@@ -47,10 +47,10 @@ REPLAY_LIMIT = 256 * 1024
 # signal that says someone else is answering on that address — looked exactly
 # like the first connection of the day.
 #
-# So keys are loaded now: the operator's own ``~/.ssh/known_hosts`` read-only,
+# So keys are loaded now: the user's own ``~/.ssh/known_hosts`` read-only,
 # plus Cmdly's own store at ``~/.cmdly/known_hosts`` that the auto-add policy
 # writes back to. The field default stays trust-on-first-use, because the
-# operator connecting to a fresh companion over a point-to-point link has no
+# user connecting to a fresh companion over a point-to-point link has no
 # known_hosts entry and must not be stopped by one. What changes is the second
 # connection: a key that does not match what was recorded raises
 # ``BadHostKeyException`` and the connection is refused.
@@ -66,7 +66,7 @@ def known_hosts_path() -> str:
 
 
 def strict_host_keys() -> bool:
-    """True when the operator asked for no auto-accept at all."""
+    """True when the user asked for no auto-accept at all."""
     return (os.environ.get(HOST_KEY_POLICY_ENV) or "").strip().lower() == "strict"
 
 
@@ -74,7 +74,7 @@ class _RememberAndWarnPolicy(paramiko.AutoAddPolicy):
     """Accept an unknown host key, but say so and write it down.
 
     The warning is the point: an auto-accepted key is a decision made on the
-    operator's behalf, and the log is where it gets recorded.
+    user's behalf, and the log is where it gets recorded.
     """
 
     def missing_host_key(self, client: Any, hostname: str, key: Any) -> None:
@@ -109,7 +109,7 @@ def _new_client() -> paramiko.SSHClient:
         # very first connection to a new host failed, and every one after it,
         # because nothing was ever saved. Only a machine whose hosts were all
         # in ~/.ssh/known_hosts already, never asked to accept one, got through.
-        # Owner-only, like the config file: it records where this station
+        # Owner-only, like the config file: it records where this computer
         # connects to.
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
         os.close(fd)
@@ -128,7 +128,7 @@ def _new_client() -> paramiko.SSHClient:
 
 
 def _host_key_hint(exc: Exception) -> str:
-    """The operator-facing explanation for a host key that did not match."""
+    """The user-facing explanation for a host key that did not match."""
     return (
         f"{exc}\n"
         f"The key this host presented is not the one recorded for it. Either "
@@ -139,7 +139,7 @@ def _host_key_hint(exc: Exception) -> str:
 
 
 def _connect_failure(exc: Exception, host: str, port: int, timeout: float) -> str:
-    """The operator-facing reason a connect failed.
+    """The user-facing reason a connect failed.
 
     A timeout is the usual field failure (the companion computer is off, or on
     another network) and its own text is a bare "timed out", so it gets a
@@ -345,7 +345,7 @@ class SshSession:
 
         The replay is what lets the UI open its SSE stream *after* the connect
         call returns and still see the login banner and the first prompt —
-        without it the terminal looks blank until the operator types.
+        without it the terminal looks blank until the user types.
         """
         with self._sub_lock:
             if replay and self._replay:
@@ -365,7 +365,7 @@ class SshSession:
                 pass
 
     def resize(self, cols: int, rows: int) -> bool:
-        """Tell the remote pty how large the operator's terminal is.
+        """Tell the remote pty how large the user's terminal is.
 
         Full-screen programs (``top``, ``vim``, ``less``) lay out against the
         pty size, so without this they draw against the 80x24 default and wrap

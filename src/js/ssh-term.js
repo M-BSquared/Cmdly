@@ -4,17 +4,10 @@ window.Cmdly = window.Cmdly || {};
 /*
   Cmdly.sshTerm — a real terminal over the SSH bridge.
 
-  What was here before was a command box: a text input at the bottom, one line
-  sent per Enter, output appended as plain divs. That is not a terminal. It
-  cannot run anything interactive — no `top`, no `vim`, no `sudo` password
-  prompt, no Ctrl-C — it renders escape sequences as garbage, and it has to
-  invent a prompt of its own because it never sees the remote one, which is why
-  it used to print "pilot@companion" no matter who was logged in.
-
-  This drives xterm.js against the raw shell channel instead. Every keystroke
-  goes to the remote pty as it is typed and every byte comes back untouched, so
-  the prompt on screen is the machine's own prompt, for the account that
-  actually logged in.
+  This drives xterm.js against the raw shell channel. Every keystroke goes to
+  the pty as it is typed and every byte comes back untouched, so `top`, `vim`,
+  a `sudo` password prompt and Ctrl-C work, and the prompt on screen is the
+  machine's own prompt, for the account that actually logged in.
 
   Three things this module owns beyond "wire xterm to fetch":
 
@@ -22,7 +15,7 @@ window.Cmdly = window.Cmdly || {};
                 off in parallel, they would race and arrive scrambled — and a
                 shell that receives "sl" for "ls" is worse than a slow one.
     size        the remote pty is told the terminal's real size, so full-screen
-                programs lay out against the window the operator can see.
+                programs lay out against the window the person can see.
     replay      the stream reconnecting means the backend replays its buffer,
                 so a reconnect resets the screen first rather than printing the
                 whole session a second time.
@@ -37,7 +30,7 @@ window.Cmdly = window.Cmdly || {};
 */
 Cmdly.sshTerm = (function () {
 
-  // Coalescing window for size changes. Dragging the panel edge fires resize
+  // Coalescing window for size changes. Dragging the window edge fires resize
   // continuously; the remote pty only needs the size it lands on.
   const RESIZE_DEBOUNCE_MS = 120;
 
@@ -58,7 +51,7 @@ Cmdly.sshTerm = (function () {
   // ---- a session that ended, told to every page of the app -----------------
   //
   // Nothing in the backend pushes "this session is gone", and the places that
-  // show a session's state (the SSH tab's cards) are not always the place it
+  // show a session's state (the shelf's buttons) are not always the place it
   // ended in: a terminal in a window of its own is its own page. So whoever
   // sees a session end says so here, and it reaches this page and, over a
   // BroadcastChannel, every other page of the app.
@@ -307,7 +300,7 @@ Cmdly.sshTerm = (function () {
       return true;
     });
 
-    // --- size: tell the remote pty what the operator can actually see ---
+    // --- size: tell the remote pty what the person can actually see ---
     let lastCols = 0;
     let lastRows = 0;
     let resizeTimer = null;
@@ -330,7 +323,7 @@ Cmdly.sshTerm = (function () {
       lastCols = cols;
       lastRows = rows;
     }
-    // One session can be on screen twice, in the SSH tab and in a window of
+    // One session can be on screen twice, in the app and in a window of
     // its own, and its pty has one size. The terminal being typed in is the
     // one the shell lays out for: taking the keyboard sends this terminal's
     // size again, even when it last sent the same one, since the other may

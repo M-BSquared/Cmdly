@@ -131,9 +131,9 @@ if ! "$APPDIR/usr/bin/python3" -m pip install --upgrade pip >>"$PIP_LOG" 2>&1; t
     exit 1
 fi
 # pyproject.toml's `app` group, not a hand-written list: this script used to
-# install the five runtime packages with NO version floors, so the Linux
-# artifact could be built against a pymavlink older than the >=2.4 the code
-# needs and nothing would catch it until the field.
+# install the runtime packages with NO version floors, so the Linux artifact
+# could be built against a package older than the floor the code needs and
+# nothing would catch it until a user hit it.
 #
 # Which source, in order: $CMDLY_REQUIREMENTS, then requirements.lock if the
 # repo has one, then the `app` group. The lock is what makes a release

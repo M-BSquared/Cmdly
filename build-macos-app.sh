@@ -99,7 +99,7 @@ import os, platform, sys, sysconfig
 # 3.12 is the floor pyproject.toml declares and the version CI
 # tests. This used to accept 3.10, so the shipped .app could be
 # built on an interpreter older than the one anything was tested on --
-# "it passes CI" then said nothing about what operators run.
+# "it passes CI" then said nothing about what users run.
 assert sys.version_info >= (3, 12), sys.version
 assert sysconfig.get_config_var("PYTHONFRAMEWORK"), "not a framework build"
 assert "conda" not in sys.prefix.lower(), "conda interpreter"
@@ -509,7 +509,7 @@ export PYTHONDONTWRITEBYTECODE=1
 
 # cmdly/app.py's default Chromium flags target Linux GPU stacks (Vulkan /
 # swiftshader). It sets them with os.environ.setdefault, so seeding a
-# macOS-appropriate value here keeps Metal in play. An operator override wins.
+# macOS-appropriate value here keeps Metal in play. A user override wins.
 export QTWEBENGINE_CHROMIUM_FLAGS="${QTWEBENGINE_CHROMIUM_FLAGS:---enable-webgl}"
 
 cd "$APPROOT"
@@ -629,7 +629,7 @@ PY
     # The artifact is named from `uname -m`, which answers for the shell and
     # not for what pip put inside the bundle. Nothing else here checks that the
     # two agree, so an x86_64 Qt wheel in a bundle called arm64 would ship
-    # silently and only fail on the operator's Mac. Check the two heaviest
+    # silently and only fail on the user's Mac. Check the two heaviest
     # native payloads: the interpreter itself and QtWebEngineCore.
     echo ">>> Verifying the bundle is $ARCH ..."
     arch_of() {  # <mach-o path> -> the architectures it actually contains
@@ -653,7 +653,7 @@ PY
 
     # Last, so it also catches anything the import check above wrote into the
     # bundle. --deep --strict is the check Gatekeeper makes on a downloaded
-    # copy, and the only place a broken seal shows before an operator sees
+    # copy, and the only place a broken seal shows before a user sees
     # "is damaged": a local build is never quarantined, so it runs regardless.
     echo ">>> Verifying the code signature ..."
     if ! codesign --verify --deep --strict --verbose=2 "$APP" \
@@ -701,7 +701,7 @@ if [ "$MAKE_DMG" -eq 1 ]; then
     fi
     rm -rf "$STAGE"
 
-    # The copy an operator receives, not the one in dist/: it went through cp
+    # The copy a user receives, not the one in dist/: it went through cp
     # and hdiutil, and either could have dropped something the seal covers.
     if [ "$VERIFY" -eq 1 ]; then
         echo ">>> Verifying the signature inside the .dmg ..."

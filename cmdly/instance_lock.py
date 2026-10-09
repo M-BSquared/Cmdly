@@ -1,4 +1,4 @@
-"""One Cmdly per machine, unless the operator says otherwise.
+"""One Cmdly per machine, unless the user says otherwise.
 
 Cmdly owns things a second copy of itself cannot share: the terminal sessions
 its buttons type into (a second window would open a second shell for the same
@@ -47,7 +47,7 @@ _LOCK_BYTE = 1 << 30
 
 
 def allow_multi() -> bool:
-    """True when the operator opted into running more than one instance."""
+    """True when the user opted into running more than one instance."""
     return str(os.environ.get(ALLOW_MULTI_ENV, "")).strip().lower() in _TRUTHY
 
 
@@ -82,7 +82,7 @@ class InstanceLock:
         """Take the lock. True when this process now owns it.
 
         False means another live Cmdly holds it — call :meth:`peer` for what
-        to tell the operator. Idempotent: acquiring twice is a no-op that
+        to tell the user. Idempotent: acquiring twice is a no-op that
         returns True and refreshes the recorded port.
         """
         if self._held:
@@ -110,7 +110,7 @@ class InstanceLock:
                 return False
         except OSError as exc:
             # The platform cannot lock this file at all. Do not hold the
-            # operator's launch hostage over it.
+            # user's launch hostage over it.
             logger.warning("instance lock not enforceable on %s (%s); "
                            "continuing without it", self._path, exc)
             os.close(fd)
@@ -214,7 +214,7 @@ def _unlock(fd: int) -> None:
 
 
 def describe_peer(peer: dict[str, Any]) -> str:
-    """One operator-facing line naming where the running instance is."""
+    """One user-facing line naming where the running instance is."""
     port = peer.get("port")
     pid = peer.get("pid")
     where = f"http://localhost:{port}/" if isinstance(port, int) and port else "(port unknown)"

@@ -87,10 +87,6 @@ code, pre { font-family: var(--mono); }
 }
 :root.unified-titlebar .brand { height: 30px; }
 .brand { display: flex; align-items: center; gap: var(--space-8); min-width: 0; }
-.brand-icon {
-  width: 22px; height: 22px; flex: 0 0 auto;
-  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.25));
-}
 .brand-name {
   font-family: var(--display);
   font-size: var(--text-xl);

@@ -1,9 +1,8 @@
-"""The single-instance guard: one ground station per machine.
+"""The single-instance guard: one Cmdly per machine.
 
-Two Cmdly processes cannot share the serial link (POSIX lets both open the
-same tty and gives each an arbitrary half of the MAVLink stream), the
-forwarder's UDP port, or ``~/.corvus/config.json``. The lock is what stops
-the second launch before any of that is opened.
+Two Cmdly processes cannot share the terminal sessions their buttons type
+into, or ``~/.cmdly/config.json``. The lock is what stops the second launch
+before any of that is opened.
 
 The lock is an OS-held advisory lock on a file handle, so the interesting
 assertions are cross-*process*: a second process must be refused, and a
@@ -72,7 +71,7 @@ def test_a_second_process_is_refused_while_the_first_holds_the_lock(
 def test_the_refused_process_learns_where_the_running_one_is(
     tmp_path,
 ) -> None:
-    """Refusing is only useful with somewhere to send the operator."""
+    """Refusing is only useful with somewhere to send the user."""
     path = str(tmp_path / "cmdly.lock")
     child = _spawn_holder(path, port=8042)
     try:
@@ -94,7 +93,7 @@ def test_a_killed_holder_leaves_no_stale_lock(
 
     This is why the guard is an OS lock and not a pid file: the kernel drops
     it when the process dies, so there is no stale state to detect or clean
-    up, and a crashed Cmdly never locks the operator out of restarting.
+    up, and a crashed Cmdly never locks the user out of restarting.
     """
     path = str(tmp_path / "cmdly.lock")
     child = _spawn_holder(path)
@@ -139,7 +138,7 @@ def test_the_recorded_port_is_updated_after_the_real_bind(
     """The launch takes the lock before it knows its port, then writes it back.
 
     Without the second write the file would advertise ``null`` and the next
-    launch could not tell the operator where to look.
+    launch could not tell the user where to look.
     """
     path = str(tmp_path / "cmdly.lock")
     lock = InstanceLock(path)
@@ -164,14 +163,14 @@ def test_an_unreadable_lock_file_reports_no_peer_instead_of_raising(
 def test_a_home_that_cannot_be_locked_does_not_block_the_launch(
     tmp_path,
 ) -> None:
-    """A locking quirk must never cost the operator their ground station.
+    """A locking quirk must never cost the user their Cmdly.
 
     Refusing to start because a home directory cannot hold the lock file
     would be a far worse failure than the race the lock guards against, so an
-    unopenable lock path degrades to "allowed". Here ``.corvus`` is a regular
+    unopenable lock path degrades to "allowed". Here ``.cmdly`` is a regular
     file, so creating a lock *inside* it cannot work.
     """
-    blocker = tmp_path / ".corvus"
+    blocker = tmp_path / ".cmdly"
     blocker.write_text("not a directory", encoding="utf-8")
     assert InstanceLock(str(blocker / "cmdly.lock")).acquire(port=8000) is True
 
@@ -193,7 +192,7 @@ def test_a_path_the_os_will_not_even_look_at_is_survived(tmp_path) -> None:
 def test_the_opt_out_reads_the_usual_spellings_of_yes(
     monkeypatch: pytest.MonkeyPatch, value: str, expected: bool,
 ) -> None:
-    """An operator with two aircraft sets this; it should just work."""
+    """A user who wants two instances sets this; it should just work."""
     monkeypatch.setenv(ALLOW_MULTI_ENV, value)
     assert allow_multi() is expected
 

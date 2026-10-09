@@ -52,15 +52,12 @@ Cmdly.launch = (function () {
 
   function coerceTarget(raw) {
     const r = raw || {};
-    if (r.target === TARGET_LOCAL || r.target === TARGET_SSH) return r.target;
-    return str(r.connection).trim() ? TARGET_SSH : TARGET_LOCAL;
+    return r.target === TARGET_SSH ? TARGET_SSH : TARGET_LOCAL;
   }
 
   function coerceMode(raw) {
     const r = raw || {};
-    if (r.mode === MODE_BACKGROUND || r.mode === MODE_TERMINAL) return r.mode;
-    if (typeof r.detach === "boolean") return r.detach ? MODE_BACKGROUND : MODE_TERMINAL;
-    return MODE_TERMINAL;
+    return r.mode === MODE_BACKGROUND ? MODE_BACKGROUND : MODE_TERMINAL;
   }
 
   /** Whether a press while the program runs stops it first. Only a terminal can. */
