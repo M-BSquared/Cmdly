@@ -232,7 +232,7 @@ def test_a_local_shell_is_a_real_terminal(tmp_path):
         assert session.resize(120, 40) is True
         session.send("stty size; tty\n")
         assert _wait(lambda: "40 120" in screen.text), screen.text
-        assert "/dev/" in screen.text
+        assert _wait(lambda: "/dev/" in screen.text), screen.text
     finally:
         session.disconnect()
     assert not session.connected
