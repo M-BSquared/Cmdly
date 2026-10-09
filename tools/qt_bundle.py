@@ -273,6 +273,18 @@ def _tool_entry(entry: Path) -> bool:
     return bool(binary_kind(entry))
 
 
+def _links_absent_qt(binary: Path, libraries: dict[str, Path],
+                     deps: Callable[[Path], list[str]]) -> bool:
+    """A plugin that links a Qt library none of the installed wheels ship.
+
+    PySide6 6.12 moved QtPdf into a wheel of its own, yet Essentials still
+    carries the imageformats/qpdf plugin that links it. Qt skips a plugin it
+    cannot load, so such a plugin is dead weight that would fail the check.
+    """
+    return any(module_for(library_key(name)) and library_key(name) not in libraries
+               for name in deps(binary))
+
+
 def plan(site: Path, deps: Callable[[Path], list[str]] = binary_deps) -> Plan:
     """Decide what of PySide6 under *site* stays. Touches nothing."""
     pyside = site / "PySide6"
@@ -292,7 +304,8 @@ def plan(site: Path, deps: Callable[[Path], list[str]] = binary_deps) -> Plan:
             if folder.name not in PLUGIN_DIRS:
                 continue
             for binary in _binaries(folder):
-                if any(word in binary.name for word in DROP_PLUGINS):
+                if any(word in binary.name for word in DROP_PLUGINS) \
+                        or _links_absent_qt(binary, libraries, deps):
                     dropped_plugins.append(binary)
                 else:
                     seeds.append(binary)
