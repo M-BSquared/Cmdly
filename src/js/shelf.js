@@ -130,7 +130,7 @@ Cmdly.shelf = (function () {
     const slot = document.getElementById("status-filter");
     if (slot) slot.replaceChildren(filter); else head.appendChild(filter);
     head.appendChild(ui.button({
-      variant: "primary", size: "sm", icon: "plus", label: "Add",
+      variant: "ghost", size: "sm", icon: "plus", label: "Add",
       className: "add-btn",
       disabled: all.length >= MAX_BUTTONS,
       title: all.length >= MAX_BUTTONS ? `A shelf holds up to ${MAX_BUTTONS} buttons` : "Add a button",
