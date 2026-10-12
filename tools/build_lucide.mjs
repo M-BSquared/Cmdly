@@ -21,8 +21,8 @@ import fs from "node:fs";
 // The names as the sources spell them (data-lucide); the export is the same
 // words in PascalCase ("settings-2" -> "Settings2").
 const ICONS = [
-  "activity", "app-window", "check", "chevron-left", "chevron-right", "circle-alert",
-  "clipboard", "cpu", "download", "filter", "filter-x", "hard-drive", "info",
+  "activity", "app-window", "arrow-up-down", "check", "chevron-left", "chevron-right", "circle-alert",
+  "clipboard", "cpu", "download", "filter", "filter-x", "grip-vertical", "hard-drive", "info",
   "key-round", "laptop", "maximize-2", "minimize-2", "palette", "pencil", "pin",
   "plug-zap", "plus", "power", "refresh-cw", "rocket", "rotate-cw", "server",
   "settings", "settings-2", "square", "square-arrow-down-left",

@@ -154,7 +154,7 @@
 .btn.add-btn:active:not(:disabled) { opacity: 0.5; transform: none; }
 
 /* ----- the shelf ----------------------------------------------------------- */
-.shelf { display: flex; flex-direction: column; gap: var(--space-8); }
+.shelf { position: relative; display: flex; flex-direction: column; gap: var(--space-8); }
 
 .shelf-row {
   position: relative;
@@ -168,9 +168,20 @@
   from { opacity: 0; transform: translateY(6px) scale(0.99); }
   to { opacity: 1; transform: none; }
 }
-.shelf-row.is-dragging { opacity: 0.45; }
-.shelf-row.drop-before { box-shadow: 0 -2px 0 0 var(--accent); }
-.shelf-row.drop-after { box-shadow: 0 2px 0 0 var(--accent); }
+/* Edit mode: every row has a grip and is the handle itself, so the launch
+   bar takes no pointer; the tools (pencil, stop) still do. The rows slide
+   aside as one is dragged through them. */
+.shelf.is-editing .shelf-row { cursor: grab; transition: transform var(--dur) var(--ease-out), opacity var(--dur) var(--ease); }
+.shelf.is-editing .shelf-row:active { cursor: grabbing; }
+.shelf.is-editing .shelf-row > :not(.row-tools) { pointer-events: none; }
+.shelf.is-editing .row-tools { cursor: default; }
+.row-grip { flex: 0 0 auto; display: flex; align-items: center; color: var(--text-3); margin-right: calc(-1 * var(--space-4)); }
+.row-grip svg { width: 16px; height: 16px; }
+.shelf-row:hover .row-grip { color: var(--text-2); }
+/* The dragged row is the slot the picture under the pointer will land in. */
+.shelf-row.is-dragging { opacity: 1; }
+.shelf-row.is-dragging .launch { opacity: 0.35; outline: 2px dashed var(--accent); outline-offset: 2px; }
+.shelf-row.is-dragging .row-grip { color: var(--accent-bright); }
 
 .launch {
   flex: 1 1 auto;
@@ -211,6 +222,8 @@
 .launch-go svg { width: 16px; height: 16px; }
 
 .row-tools { display: flex; align-items: center; gap: var(--space-2); flex: 0 0 auto; padding-right: var(--space-2); }
+/* Nothing in it (no edit mode, no failure, not running): the button runs to the row's edge like the cards above. */
+.row-tools:empty { display: none; }
 .row-tools .icon-btn { width: 32px; height: 32px; }
 .row-tools .icon-btn svg { width: 16px; height: 16px; }
 .row-stop { color: var(--critical) !important; }

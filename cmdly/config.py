@@ -54,7 +54,7 @@ DEFAULT_UPDATES: dict[str, Any] = {
     "skipped": "",
 }
 
-MIN_W, MIN_H = 420, 520
+MIN_W, MIN_H = 260, 360
 MAX_W, MAX_H = 4000, 3000
 
 

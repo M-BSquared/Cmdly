@@ -13,7 +13,7 @@ window.Cmdly = window.Cmdly || {};
       "throw this session away". With RESTART on, the second press sends
       Ctrl-C first and types the line a second later. The terminal window
       opens on the ARROW beside the button, never on the button: a launch is
-      a launch. While the session is up the row's pencil is a stop button:
+      a launch. While the session is up the row has a stop button:
       Ctrl-C, then the session closed.
 
     BACKGROUND  One shot, nothing to watch. Over SSH it runs under nohup and

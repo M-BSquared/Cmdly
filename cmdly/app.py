@@ -15,7 +15,7 @@ manager honours the hint (:class:`cmdly.native_window.X11Effects`).
 A terminal
 opens in a window of its own by default, frameless and drawn by its page, the
 same frame as the one floating over the page, which can go anywhere and be
-pinned above Cmdly.
+pinned above every other window.
 
 Usage:
     python3 cmdly/app.py [PORT]
@@ -100,9 +100,9 @@ POPOUT_MIN_W = 360
 POPOUT_MIN_H = 220
 #: A new terminal window: landscape, whatever shape the frame it replaces had.
 POPOUT_DEFAULT = (780, 500)
-MAIN_MIN_W = 300
-MAIN_MIN_H = 520
-MAIN_DEFAULT = (560, 760)
+MAIN_MIN_W = 260
+MAIN_MIN_H = 360
+MAIN_DEFAULT = (423, 600)
 #: What the blur behind the main window is tinted with in a light theme
 #: (RGBA, 0-1): the frosted look, with the desktop showing through faintly.
 MAIN_LIGHT_TINT = (0.90, 0.90, 0.92, 0.35)
@@ -155,11 +155,6 @@ def external_url(url: str) -> bool:
         return urlsplit(url).scheme in ("http", "https")
     except ValueError:
         return False
-
-
-def stays_on_top(pinned: bool, app_active: bool) -> bool:
-    """A pinned terminal is above Cmdly's windows, not above other programs'."""
-    return bool(pinned) and bool(app_active)
 
 
 def window_support(platform_name: str, os_platform: str = sys.platform,
@@ -403,42 +398,13 @@ def main() -> int:  # noqa: C901 - one function owns the Qt objects and their li
         if handle is not None:
             handle.setFlags(flags)
 
-    def app_active() -> bool:
-        return QGuiApplication.applicationState() == Qt.ApplicationState.ApplicationActive
-
-    def step_back(holder) -> None:
-        if win is not None:
-            try:
-                win.step_back(int(holder.winId()))
-            except Exception:  # noqa: BLE001 - the order is cosmetic
-                logger.debug("could not step a window back", exc_info=True)
-        elif QGuiApplication.platformName() == "xcb":
-            holder.lower()
-
-    def apply_pin(holder) -> None:
-        if not support["pin"]:
-            return
-        active = app_active()
-        want = stays_on_top(holder.pinned, active)
-        if want != bool(holder.windowFlags() & Qt.WindowType.WindowStaysOnTopHint):
-            set_on_top(holder, want)
-            if not want and not active:
-                step_back(holder)
-
     def pin(holder, on: bool) -> None:
+        """Keep a terminal above every other window, as the main window's pin does."""
         holder.pinned = bool(on) and support["pin"]
         if holder.key:
             popout_pinned[holder.key] = holder.pinned
-        apply_pin(holder)
-
-    def on_app_state(_state) -> None:
-        for holder in list(popout_windows.values()):
-            try:
-                apply_pin(holder)
-            except RuntimeError:
-                pass
-
-    app.applicationStateChanged.connect(on_app_state)
+        if support["pin"] and holder.pinned != bool(holder.windowFlags() & Qt.WindowType.WindowStaysOnTopHint):
+            set_on_top(holder, holder.pinned)
 
     from PySide6.QtWidgets import QVBoxLayout, QWidget
 
@@ -836,10 +802,8 @@ def main() -> int:  # noqa: C901 - one function owns the Qt objects and their li
 
         @Slot(bool, result=bool)
         def setPinned(self, on: bool) -> bool:  # noqa: N802
-            """Keep the main window above other programs', or stop. A pinned
-            terminal is kept above Cmdly's windows only while Cmdly is in
-            front (stays_on_top); this is the app itself, so the pin is the
-            window system's own always-on-top, for as long as it is on."""
+            """Keep the main window above other programs', or stop: the window
+            system's own always-on-top, as a pinned terminal's is."""
             if not support["pin"]:
                 return False
             set_on_top(window, bool(on))
@@ -884,6 +848,9 @@ def main() -> int:  # noqa: C901 - one function owns the Qt objects and their li
     profile = QWebEngineProfile("cmdly", window)
     profile.setPersistentStoragePath(profile_dir)
     profile.setCachePath(os.path.join(profile_dir, "cache"))
+    # Everything the page loads comes from this computer, so a cached copy
+    # saves nothing and an old one (the icon set, a script) outlives an update.
+    profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.NoCache)
 
     def on_download(request: QWebEngineDownloadRequest) -> None:
         """A setup exported from Settings: ask where it goes, like a Save dialog."""

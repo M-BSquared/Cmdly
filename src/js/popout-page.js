@@ -13,9 +13,8 @@ window.Cmdly = window.Cmdly || {};
   In the desktop app the window is frameless (cmdly/app.py) and this page is
   all of it: the bar moves it, the corner grip sizes it, the bar's own buttons
   maximize and close it, exactly as in the app, and one more that a frame
-  inside the app does not need: the pin, which keeps the window above the
-  Cmdly window. Only above Cmdly: with another program in front, its windows
-  can cover this one as they would any other (cmdly/app.py, stays_on_top). A window that came OUT of the
+  inside the app does not need: the pin, which keeps the window above
+  every other window, other programs' included. A window that came OUT of the
   app (its address says "dock=1") can go back: its bar has the button for it,
   and letting go of it over the app puts it back in as a frame, where it was
   let go of. One that opened as a window of its own stays one. In a browser
@@ -139,7 +138,7 @@ Cmdly.popoutPage = (function () {
     let pinned = false;
     const pinBtn = canPin ? ui.iconButton("pin", {
       size: 13,
-      ariaLabel: `Keep the ${opts.noun} above the Cmdly window`,
+      ariaLabel: `Keep the ${opts.noun} above all other windows`,
       onClick: () => n.setPinned(!pinned, paintPin),
     }) : null;
     function paintPin(on) {
@@ -148,8 +147,8 @@ Cmdly.popoutPage = (function () {
       pinBtn.classList.toggle("active", pinned);
       pinBtn.setAttribute("aria-pressed", pinned ? "true" : "false");
       pinBtn.title = pinned
-        ? "Kept above the Cmdly window. Click to stop"
-        : "Keep above the Cmdly window. Other programs can still cover it";
+        ? "Kept above all other windows. Click to stop"
+        : "Keep above all other windows";
     }
     paintPin(false);
     if (pinBtn && typeof n.isPinned === "function") n.isPinned(paintPin);

@@ -256,10 +256,10 @@ class Handler(SettingsRoutes, BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(body)))
-            # Fonts and vendored libraries never change within a version; the
-            # app's own files are revalidated so an update shows at once.
-            vendor = "/vendor/" in full or rel.endswith(".woff2")
-            self.send_header("Cache-Control", "max-age=86400" if vendor else "no-cache")
+            # Fonts never change; everything else (the app's own files and the
+            # vendored scripts, whose icon set grows with the app) is
+            # revalidated so an update shows at once, not after a day.
+            self.send_header("Cache-Control", "max-age=86400" if rel.endswith(".woff2") else "no-cache")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.end_headers()
             self.wfile.write(body)

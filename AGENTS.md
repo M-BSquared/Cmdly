@@ -44,7 +44,7 @@ in the code depends on, or is kept in step with, another project.
   explanations go behind an info icon (`ui.field({info})`, `ui.infoHint`),
   never as paragraphs under a field.
 - `src/vendor/lucide.min.js` is a subset built by `tools/build_lucide.mjs`
-  (38 icons, ~11 KB, not the 376 KB full set); a missing icon fails
+  (40 icons, ~11 KB, not the 376 KB full set); a missing icon fails
   `tests/test_frontend_icons.js` and logs a page error at runtime.
 - The window is a column of bands that never overlap: title bar, companion
   card, the scrolling view, the status line. Anything that can grow scrolls.

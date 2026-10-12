@@ -1,6 +1,9 @@
 """The desktop wrapper's rules (cmdly/app.py), without Qt."""
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 from cmdly import app
 
 
@@ -56,12 +59,6 @@ def test_a_window_is_kept_on_its_screen():
     assert app.popout_geometry((100, 100, 5000, 5000), (0, 0, 1000, 800)) == (0, 0, 1000, 800)
 
 
-def test_pinned_only_while_cmdly_is_in_front():
-    assert app.stays_on_top(True, True)
-    assert not app.stays_on_top(True, False)
-    assert not app.stays_on_top(False, True)
-
-
 def test_qt_platform_prefers_x11_under_wayland_with_xwayland():
     env = {"WAYLAND_DISPLAY": "wayland-0", "DISPLAY": ":0"}
     assert app.qpa_platform(env, "linux") == "xcb;wayland"
@@ -80,3 +77,15 @@ def test_desktop_id_and_argv():
 def test_chromium_flags():
     assert "--disable-gpu-sandbox" in app.chromium_flags("linux")
     assert "--disable-gpu-sandbox" not in app.chromium_flags("darwin")
+
+
+def test_the_windows_ground_never_transitions():
+    """The frosted window swaps body's background from the solid ground to the
+    frost while the window may not be on screen yet; a transition then stops
+    half-way and the frost comes out clear or near-black from one start to the
+    next. The swap has to be instant."""
+    css = (Path(__file__).resolve().parent.parent / "src" / "css" / "base.css").read_text(encoding="utf-8")
+    body = re.search(r"(?m)^body\s*\{(.*?)^\}", css, re.S)
+    assert body is not None
+    declarations = re.sub(r"/\*.*?\*/", "", body.group(1), flags=re.S)
+    assert "transition" not in declarations

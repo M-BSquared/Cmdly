@@ -23,7 +23,11 @@ body {
   text-rendering: optimizeLegibility;
   font-feature-settings: "tnum" 1, "cv11" 1;
   letter-spacing: -0.01em;
-  transition: background var(--dur-slow) var(--ease);
+  /* No transition on the background: the frosted window swaps it from the solid
+     ground to the see-through frost once the native blur is up, and a window
+     that is not on screen yet does not run a transition to its end. The
+     compositor kept the half-way colour, so the frost came out anywhere from
+     clear to near-black from one start to the next. */
 }
 button { font-family: inherit; color: inherit; cursor: pointer; background: none; border: none; font-size: inherit; }
 input, select, textarea { font-family: inherit; }
@@ -97,6 +101,9 @@ code, pre { font-family: var(--mono); }
 .statusbar-row { display: flex; align-items: center; gap: var(--space-8); min-width: 0; }
 .statusbar-tools { display: flex; align-items: center; gap: var(--space-4); flex: 0 0 auto; }
 .statusbar-tools #status-filter { display: contents; }
+/* The pin sits at the far right, after the status text; nothing of it where the window cannot pin. */
+#status-pin { flex: 0 0 auto; display: flex; }
+#status-pin:empty { display: none; }
 .statusbar .icon-btn { width: 30px; height: 30px; color: var(--text-2); }
 .statusbar .icon-btn svg { width: 16px; height: 16px; }
 

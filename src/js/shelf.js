@@ -8,10 +8,17 @@ window.Cmdly = window.Cmdly || {};
   button's fields). Editing is a view rather than an expanding row because a
   form beside a list of buttons in a narrow window reads as neither.
 
+  Editing is a mode of the shelf, switched by the pencil in the status line:
+  every row gets a grip and its pencil, and the launch buttons stop
+  launching. A row is dragged by any part that is not a tool; the dragged
+  row moves through the list as it is dragged, the others make room, and the
+  new order is saved when it is dropped.
+
   A row: the launch button (label, and where it runs as an icon at its far
   end), then a warning triangle when its last press failed (the reason in its
   popover), a green dot while it runs, the arrow into its terminal, and the
-  pencil, which is a stop button while its program runs. Removing a button is
+  stop button while its program runs. The pencil shows only in edit mode,
+  which the pencil in the status line switches. Removing a button is
   the last thing in its editor: a trash can beside the launch button would be
   one mis-click from killing a running program.
 
@@ -27,6 +34,11 @@ Cmdly.shelf = (function () {
   let viewEl = null;
   let editing = null;      // the draft being edited, or null on the shelf
   let dragId = null;
+  let dropped = false;     // the drag in progress ended on the list
+  // Edit mode: every row shows its grip and its pencil and is dragged to a
+  // new place, and the launch buttons stop launching. Off, a row is only the
+  // launch button (and the stop button while its program runs).
+  let editMode = false;
   // Rows already on screen: only a row that is new comes in with the entry
   // animation, so a repaint (a ping, a session going up) never makes the
   // whole list flicker.
@@ -48,6 +60,7 @@ Cmdly.shelf = (function () {
       visible.map((b) => b.id),
       st.connectionsLoaded ? st.connections.map((c) => c.name) : null,
       !!(st.config.ui || {}).reachable_only,
+      editMode,
       all.map((b) => [store().isLive(L().sessionName(b)), L().isClosing(b), L().errorOf(b)]),
     ]);
   }
@@ -61,7 +74,7 @@ Cmdly.shelf = (function () {
       terminal: "On: the program runs in a terminal of this button's own. Pressing " +
                 "the button again runs it again in that same terminal; the arrow " +
                 "beside the button shows the window. Stop it with Ctrl-C, the " +
-                "window's power button, or the stop button that replaces the pencil " +
+                "window's power button, or the stop button beside the button " +
                 "while it runs.\n\nOff: it starts in the background with nothing to " +
                 "watch. Either way it is stopped when Cmdly quits.",
     },
@@ -127,8 +140,14 @@ Cmdly.shelf = (function () {
       ariaLabel: "Hide buttons that cannot be reached",
       onClick: () => store().setUi({ reachable_only: !filterOn }),
     });
+    const editToggle = ui.iconButton("pencil", {
+      className: "icon-btn" + (editMode ? " active" : ""),
+      title: editMode ? "Done editing" : "Edit and reorder the buttons",
+      ariaLabel: editMode ? "Done editing" : "Edit the buttons",
+      onClick: () => { editMode = !editMode; render(); },
+    });
     const slot = document.getElementById("status-filter");
-    if (slot) slot.replaceChildren(filter); else head.appendChild(filter);
+    if (slot) slot.replaceChildren(editToggle, filter); else head.append(editToggle, filter);
     head.appendChild(ui.button({
       variant: "ghost", size: "sm", icon: "plus", label: "Add",
       className: "add-btn",
@@ -148,9 +167,10 @@ Cmdly.shelf = (function () {
         ui.button({ variant: "secondary", label: "Show all", onClick: () => store().setUi({ reachable_only: false }) })));
     } else {
       const list = document.createElement("div");
-      list.className = "shelf";
+      list.className = "shelf" + (editMode ? " is-editing" : "");
       list.setAttribute("role", "list");
       shown.forEach((entry) => list.appendChild(row(entry)));
+      if (editMode) wireList(list);
       viewEl.appendChild(list);
     }
 
@@ -280,57 +300,91 @@ Cmdly.shelf = (function () {
       });
       if (stopping) ui.setBusy(stopBtn, true);
       tools.appendChild(stopBtn);
-    } else {
+    }
+    if (editMode) {
       tools.appendChild(ui.iconButton("pencil", {
         ariaLabel: `Edit ${entry.label}`, title: "Edit",
         onClick: () => edit(Object.assign({}, entry), false),
       }));
     }
     el.appendChild(tools);
-    wireDrag(el, entry);
+    if (editMode) {
+      const grip = document.createElement("span");
+      grip.className = "row-grip";
+      grip.appendChild(ui.icon("grip-vertical", 16));
+      el.insertBefore(grip, el.firstChild);
+      bar.querySelectorAll("button").forEach((b) => { b.tabIndex = -1; });
+      wireDrag(el, entry);
+    }
     return el;
   }
 
-  /** Reorder by dragging a row by its free space (not its buttons). */
+  /** Edit mode: a row is dragged by any part of it but its tools (the launch buttons ignore the pointer then). */
   function wireDrag(el, entry) {
     el.draggable = true;
     el.addEventListener("dragstart", (e) => {
       if (e.target !== el) { e.preventDefault(); return; }
       dragId = entry.id;
-      el.classList.add("is-dragging");
+      dropped = false;
       try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", entry.id); } catch (_e) {}
+      // After the browser has taken the picture it drags along: the row
+      // itself turns into the slot the picture will land in.
+      setTimeout(() => el.classList.add("is-dragging"), 0);
     });
     el.addEventListener("dragend", () => {
       dragId = null;
       el.classList.remove("is-dragging");
-      document.querySelectorAll(".shelf-row.drop-before, .shelf-row.drop-after")
-        .forEach((r) => r.classList.remove("drop-before", "drop-after"));
-    });
-    el.addEventListener("dragover", (e) => {
-      if (!dragId || dragId === entry.id) return;
-      e.preventDefault();
-      const box = el.getBoundingClientRect();
-      const after = e.clientY > box.top + box.height / 2;
-      el.classList.toggle("drop-after", after);
-      el.classList.toggle("drop-before", !after);
-    });
-    el.addEventListener("dragleave", () => el.classList.remove("drop-before", "drop-after"));
-    el.addEventListener("drop", (e) => {
-      if (!dragId || dragId === entry.id) return;
-      e.preventDefault();
-      const after = el.classList.contains("drop-after");
-      const list = buttons().slice();
-      const from = list.findIndex((b) => b.id === dragId);
-      if (from < 0) return;
-      const [moved] = list.splice(from, 1);
-      let to = list.findIndex((b) => b.id === entry.id);
-      if (after) to += 1;
-      list.splice(to, 0, moved);
-      saveButtons(list);
+      // Dropped outside the list or cancelled with Escape: put the rows back.
+      if (!dropped) { lastKey = ""; render(); }
     });
   }
 
+  /** The list takes the drops: its rows are reordered in place while a row is over it. */
+  function wireList(list) {
+    list.addEventListener("dragover", (e) => {
+      const el = dragId && list.querySelector(".shelf-row.is-dragging");
+      if (!el) return;
+      e.preventDefault();
+      try { e.dataTransfer.dropEffect = "move"; } catch (_e) {}
+      // Where the pointer is among the rows' resting places (not where they
+      // are drawn mid-slide, which would make the rows flicker back and forth).
+      const y = e.clientY - list.getBoundingClientRect().top;
+      const others = Array.from(list.children).filter((r) => r !== el);
+      const next = others.find((r) => y < r.offsetTop + r.offsetHeight / 2) || null;
+      if (el.nextElementSibling === next) return;
+      const before = new Map(Array.from(list.children).map((r) => [r, r.offsetTop]));
+      list.insertBefore(el, next);
+      Array.from(list.children).forEach((r) => {
+        const dy = before.get(r) - r.offsetTop;
+        if (!dy || r === el) return;
+        r.style.transition = "none";
+        r.style.transform = `translateY(${dy}px)`;
+        r.getBoundingClientRect();
+        r.style.transition = "";
+        r.style.transform = "";
+      });
+    });
+    list.addEventListener("drop", (e) => {
+      if (!dragId) return;
+      e.preventDefault();
+      dropped = true;
+      saveOrder(Array.from(list.children).map((r) => r.dataset.id));
+    });
+  }
+
+  /** The shelf in the order of `ids` (the rows on screen); buttons the filter hides keep their places. */
+  function saveOrder(ids) {
+    const all = buttons();
+    const byId = new Map(all.map((b) => [b.id, b]));
+    const queue = ids.map((id) => byId.get(id)).filter(Boolean);
+    const shownIds = new Set(ids);
+    const next = all.map((b) => (shownIds.has(b.id) ? queue.shift() : b));
+    if (next.every((b, i) => b === all[i])) return;
+    saveButtons(next).catch(() => { lastKey = ""; render(); });
+  }
+
   function addButton() {
+    editMode = false;
     const all = buttons();
     const last = all.length ? all[all.length - 1] : null;
     const conns = store().state.connections;

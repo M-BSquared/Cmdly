@@ -1,6 +1,6 @@
 """Native window effects the desktop wrapper needs beyond what Qt offers.
 
-Windows: placing and pinning a pop out window in the operating system's own
+Windows: placing a pop out window in the operating system's own
 pixels (:class:`Win32Windows`). macOS: blurring the desktop behind a window
 (:class:`MacBlur`): a frosted terminal of its own, and the main window's
 frost, whose title bar :meth:`MacBlur.unify` also folds into the page.
@@ -31,19 +31,11 @@ class Win32Windows:
     window is (``GetWindowRect``), and ``SetWindowPos``; Windows then tells Qt
     the window changed screens, and Qt rescales it as it would for the
     system's own drag.
-
-    Also the one thing the pin needs that Qt does not do: when another
-    program comes to the front, a window that stops being topmost is placed
-    above every other window, that program's included (``HWND_NOTOPMOST``).
-    :meth:`step_back` puts it behind that program's window instead.
     """
 
     _SWP_NOSIZE = 0x0001
-    _SWP_NOMOVE = 0x0002
     _SWP_NOZORDER = 0x0004
     _SWP_NOACTIVATE = 0x0010
-    _SWP_NOOWNERZORDER = 0x0200
-    _HWND_NOTOPMOST = -2
 
     def __init__(self) -> None:
         import ctypes
@@ -61,8 +53,6 @@ class Win32Windows:
         user32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int,
                                         ctypes.c_int, ctypes.c_int, wintypes.UINT]
         user32.SetWindowPos.restype = wintypes.BOOL
-        user32.GetForegroundWindow.argtypes = []
-        user32.GetForegroundWindow.restype = wintypes.HWND
         self._user32 = user32
 
     def cursor(self) -> tuple[int, int]:
@@ -81,13 +71,6 @@ class Win32Windows:
         flags = self._SWP_NOSIZE | self._SWP_NOZORDER | self._SWP_NOACTIVATE
         if not self._user32.SetWindowPos(hwnd, None, int(x), int(y), 0, 0, flags):
             raise OSError(self._ct.get_last_error(), "SetWindowPos failed")
-
-    def step_back(self, hwnd: int) -> None:
-        flags = self._SWP_NOSIZE | self._SWP_NOMOVE | self._SWP_NOACTIVATE | self._SWP_NOOWNERZORDER
-        self._user32.SetWindowPos(hwnd, self._HWND_NOTOPMOST, 0, 0, 0, 0, flags)
-        front = self._user32.GetForegroundWindow()
-        if front and front != hwnd:
-            self._user32.SetWindowPos(hwnd, front, 0, 0, 0, 0, flags)
 
 
 def win32_windows(platform: str = sys.platform) -> Win32Windows | None:
