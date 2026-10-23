@@ -364,6 +364,20 @@ class SshSession:
             except ValueError:
                 pass
 
+    def snapshot(self, limit: int = REPLAY_LIMIT) -> str:
+        """The session's output so far, as one string: its last *limit* bytes.
+
+        Taken under the lock a publish is held to, so no chunk can appear
+        twice or half-written in what this returns. The page streams a
+        terminal live; a snapshot is for a reader that asks once — an agent
+        over MCP, which types a line and wants to see what came of it.
+        """
+        with self._sub_lock:
+            text = "".join(self._replay)
+        if len(text) > limit:
+            return text[-limit:]
+        return text
+
     def resize(self, cols: int, rows: int) -> bool:
         """Tell the remote pty how large the user's terminal is.
 
@@ -622,6 +636,23 @@ def _drain_command_output(
     return out_text, err_text, status
 
 
+def _feed_command_input(stdin: Any, text: str) -> None:
+    """Write *text* to a command's input, then close the input.
+
+    EOF right after the text is the point: a program that would ask again
+    (sudo -S after a wrong password) sees EOF and gives up instead of
+    holding the command until its timeout. A channel that is already gone
+    is nothing to raise over — the drain loop owns what happens next.
+    """
+    try:
+        if text:
+            stdin.write(text.encode("utf-8"))
+            stdin.flush()
+        stdin.channel.shutdown_write()
+    except Exception:
+        logger.debug("could not feed a command its input", exc_info=True)
+
+
 def run_command(
     host: str,
     command: str,
@@ -630,6 +661,7 @@ def run_command(
     password: str | None = None,
     key_path: str | None = None,
     timeout: float = 20.0,
+    stdin: str | None = None,
 ) -> dict[str, Any]:
     """Run one command over its own SSH connection and return the result.
 
@@ -641,7 +673,11 @@ def run_command(
     whatever happens.
 
     *command* is executed by the remote login shell, so the caller composes the
-    whole line (``cd … && …``) and owns its quoting. Returns
+    whole line (``cd … && …``) and owns its quoting. *stdin*, when given, is
+    written into the command's input as-is and closed right after — the
+    channel's input stays open otherwise, so a program that reads it would wait
+    out the timeout; this is how the power actions hand sudo its password
+    (``sudo -S``). Returns
     ``{"ok", "exit_status", "stdout", "stderr", "error", "auth_failed"}``;
     ``ok`` is true only when the command actually ran AND exited 0, and
     ``auth_failed`` is true when the host refused the login. Never raises.
@@ -679,6 +715,8 @@ def run_command(
             kwargs["look_for_keys"] = False
         client.connect(**kwargs)
         _stdin, stdout, stderr = client.exec_command(command, timeout=timeout_s)
+        if stdin is not None:
+            _feed_command_input(_stdin, stdin)
         out, err, status = _drain_command_output(stdout, stderr, timeout_s)
         return {
             "ok": status == 0,

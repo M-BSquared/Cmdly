@@ -70,6 +70,23 @@ def test_update_merges_ui_and_normalizes(tmp_path):
     assert out["ui"]["theme"] == "blue"
 
 
+def test_an_agent_is_not_allowed_to_control_terminals_by_default(tmp_path):
+    """The switch is the person's yes, off until it is given."""
+    cfg = Config(str(tmp_path / "config.json"))
+    assert cfg.public()["agent"] == {"terminal_control": False}
+    out = cfg.update({"agent": {"terminal_control": True}})
+    assert out["agent"]["terminal_control"] is True
+    assert cfg.public()["agent"]["terminal_control"] is True
+
+
+def test_the_agent_switch_reads_a_genuine_boolean_only(tmp_path):
+    cfg = Config(str(tmp_path / "config.json"))
+    out = cfg.update({"agent": {"terminal_control": "on"}})
+    assert out["agent"]["terminal_control"] is False
+    write(tmp_path / "hand-edited.json", {"agent": {"terminal_control": 1}})
+    assert Config(str(tmp_path / "hand-edited.json")).public()["agent"] == {"terminal_control": False}
+
+
 def test_update_refuses_a_wrong_shape(tmp_path):
     cfg = Config(str(tmp_path / "config.json"))
     with pytest.raises(ConfigError):

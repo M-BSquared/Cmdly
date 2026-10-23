@@ -4,11 +4,11 @@ window.Cmdly = window.Cmdly || {};
 /*
   Cmdly.settings — the settings sheet.
 
-  Five pages behind one segmented control: Appearance (theme, the frosted window),
+  Six pages behind one segmented control: Appearance (theme, the frosted window),
   Terminals (frosted or solid, own windows or frames in the app),
-  Connections (the saved SSH connections), Data (moving a setup to another
-  computer) and About. Every switch applies at once and is saved; there is no
-  Save button to forget.
+  Connections (the saved SSH connections), Agent (what an AI agent may do),
+  Data (moving a setup to another computer) and About. Every switch applies
+  at once and is saved; there is no Save button to forget.
 */
 Cmdly.settings = (function () {
   const store = () => Cmdly.store;
@@ -19,6 +19,7 @@ Cmdly.settings = (function () {
     { value: "appearance", label: "Look", icon: "palette" },
     { value: "terminals", label: "Terminals", icon: "square-terminal" },
     { value: "connections", label: "SSH", icon: "key-round" },
+    { value: "agent", label: "Agent", icon: "cpu" },
     { value: "data", label: "Data", icon: "hard-drive" },
     { value: "about", label: "About", icon: "info" },
   ];
@@ -138,6 +139,41 @@ Cmdly.settings = (function () {
       title: "Show a computer in the main window that is only pinged, without a connection",
       onClick: () => { Cmdly.companion.openDialog(null); },
     })]));
+    return wrap;
+  }
+
+  function agent() {
+    const cfg = store().state.config.agent || {};
+    const wrap = document.createElement("div");
+    wrap.appendChild(group("AI agents", [
+      switchRow("Control terminals and power", cfg.terminal_control === true,
+        (on) => store().save({
+          agent: Object.assign({}, store().state.config.agent, { terminal_control: on }),
+        }),
+        "Cmdly speaks MCP (Model Context Protocol), the protocol AI agent apps " +
+        "use. An agent that connects can add, change, list and remove buttons " +
+        "on its own — adding a button changes no computer, pressing it does.\n\n" +
+        "This switch is the rest: pressing a button, opening terminals here and " +
+        "over SSH and typing into them, running commands in the background, " +
+        "pinging a computer, and shutting down or rebooting this computer and " +
+        "its companions. Off (the default), an agent can only touch buttons — " +
+        "and no agent can switch this on itself. A terminal an agent opens is " +
+        "shown as a window, so nothing it types happens off screen."),
+    ]));
+    const cmd = document.createElement("code");
+    cmd.className = "path";
+    cmd.textContent = "python -m cmdly mcp";
+    wrap.appendChild(group("Add Cmdly to an agent app", [
+      ui().field({
+        label: "Command",
+        control: cmd,
+        info: "Run this from the Cmdly folder in your agent app (Claude Desktop, " +
+          "Claude Code, Cursor…), with the folder as the command's working " +
+          "directory. A packaged Cmdly is asked the same thing with the AppImage " +
+          "instead: …/Cmdly.AppImage mcp.\n\nThe server talks to the agent over " +
+          "its stdin and stdout; Cmdly itself must be running.",
+      }),
+    ]));
     return wrap;
   }
 
@@ -268,7 +304,7 @@ Cmdly.settings = (function () {
     return wrap;
   }
 
-  const BUILDERS = { appearance, terminals, connections, data, about };
+  const BUILDERS = { appearance, terminals, connections, agent, data, about };
 
   // ---- the sheet ----------------------------------------------------------------
 

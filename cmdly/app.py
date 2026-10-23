@@ -19,6 +19,7 @@ pinned above every other window.
 
 Usage:
     python3 cmdly/app.py [PORT]
+    python3 cmdly/app.py mcp     the MCP server, not the app (cmdly/mcp.py)
 """
 from __future__ import annotations
 
@@ -122,6 +123,12 @@ def parse_port_arg(argv: list[str], default: int) -> tuple[int, str]:
     if not 1 <= port <= 65535:
         return default, f"port {port} is out of range (1-65535)"
     return port, ""
+
+
+def is_mcp_arg(argv: list[str]) -> bool:
+    """Whether this launch asks for the MCP server (``app.py mcp``) rather
+    than the app: a process an agent's client owns, with no window."""
+    return len(argv) > 1 and argv[1] == "mcp"
 
 
 def popout_url_allowed(url: str, port: int) -> bool:
@@ -278,6 +285,13 @@ def report_startup_failure(text: str, detail: str) -> None:
 
 
 def main() -> int:  # noqa: C901 - one function owns the Qt objects and their lifetimes
+    if is_mcp_arg(sys.argv):
+        # The MCP server (cmdly/mcp.py) is a process an agent's client starts
+        # and owns; the packaged app is one binary, so it answers here too
+        # (Cmdly.AppImage mcp). No Qt is imported for it: it is not the app.
+        from cmdly.mcp import run
+        return run()
+
     from PySide6.QtCore import QFile, QIODevice, QObject, QPoint, QRect, QSize, Qt, QTimer, QUrl, Slot
     from PySide6.QtGui import QGuiApplication, QIcon
     from PySide6.QtWebChannel import QWebChannel

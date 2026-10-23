@@ -269,6 +269,111 @@ def test_run_command_flags_a_refused_login(monkeypatch) -> None:
     assert ssh_bridge.run_command("10.0.0.5", "uptime", username="pilot")["auth_failed"] is False
 
 
+class _ExecChannel:
+    """The exec-channel surface run_command's drain loop touches: some output,
+    an exit status, and a write side that records what it was fed."""
+
+    def __init__(self, out: bytes = b"going down\r\n", status: int = 0) -> None:
+        self.out = [out]
+        self.status = status
+        self.written: list[bytes] = []
+        self.write_closed = False
+
+    def recv_ready(self) -> bool:
+        return bool(self.out)
+
+    def recv(self, _n: int) -> bytes:
+        return self.out.pop(0)
+
+    def recv_stderr_ready(self) -> bool:
+        return False
+
+    def recv_stderr(self, _n: int) -> bytes:
+        return b""
+
+    def exit_status_ready(self) -> bool:
+        return not self.out
+
+    def recv_exit_status(self) -> int:
+        return self.status
+
+    def close(self) -> None:
+        pass
+
+    def shutdown_write(self) -> None:
+        self.write_closed = True
+
+
+class _ExecStdin:
+    """The writable side of a faked exec channel."""
+
+    def __init__(self, channel: _ExecChannel) -> None:
+        self.channel = channel
+
+    def write(self, data: bytes) -> None:
+        self.channel.written.append(data)
+
+    def flush(self) -> None:
+        pass
+
+
+class _ExecStdout:
+    def __init__(self, channel: _ExecChannel) -> None:
+        self.channel = channel
+
+
+class _ExecClient:
+    """An SSHClient stand-in whose exec_command hands out a faked channel."""
+
+    def __init__(self, channel: _ExecChannel) -> None:
+        self._channel = channel
+
+    def connect(self, **kwargs: Any) -> None:
+        pass
+
+    def exec_command(self, command: str, timeout: float | None = None) -> tuple:
+        return _ExecStdin(self._channel), _ExecStdout(self._channel), _ExecStdout(self._channel)
+
+    def close(self) -> None:
+        pass
+
+
+def _execs_into(channel: _ExecChannel, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ssh_bridge, "_new_client", lambda: _ExecClient(channel))
+
+
+def test_run_command_types_stdin_into_the_command_and_closes_it(monkeypatch) -> None:
+    """How the power actions get through sudo when it asks for a password:
+    sudo -S reads it from the command's input, and EOF after the password is
+    what keeps sudo from waiting out the timeout for another try."""
+    channel = _ExecChannel()
+    _execs_into(channel, monkeypatch)
+    result = ssh_bridge.run_command("10.0.0.5", "sudo -S -p '' shutdown -h now",
+                                    username="pilot", stdin="raspberry\n")
+    assert result["ok"] is True
+    assert b"".join(channel.written) == b"raspberry\n"
+    assert channel.write_closed is True
+
+
+def test_run_command_without_stdin_leaves_the_input_alone(monkeypatch) -> None:
+    channel = _ExecChannel()
+    _execs_into(channel, monkeypatch)
+    assert ssh_bridge.run_command("10.0.0.5", "uptime", username="pilot")["ok"] is True
+    assert channel.written == []
+    assert channel.write_closed is False
+
+
+def test_run_command_closes_an_empty_input_instead_of_hanging_the_command(monkeypatch) -> None:
+    """The power action without a saved password: sudo gets EOF, not a wait
+    until the command times out."""
+    channel = _ExecChannel()
+    _execs_into(channel, monkeypatch)
+    assert ssh_bridge.run_command("10.0.0.5", "sudo -S -p '' true",
+                                   username="pilot", stdin="")["ok"] is True
+    assert channel.written == []
+    assert channel.write_closed is True
+
+
 def test_the_first_connection_to_a_new_host_can_remember_its_key(tmp_path, monkeypatch) -> None:
     """Regression: on a computer that had never accepted a host, every connect failed.
 

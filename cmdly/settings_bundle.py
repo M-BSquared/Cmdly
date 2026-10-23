@@ -53,8 +53,10 @@ SECTIONS: dict[str, tuple[str, ...]] = {
 }
 
 # Config keys a bundle never carries. ``window`` is the size of the window on
-# this screen: on another computer's screen it means nothing.
-EXCLUDED_KEYS: frozenset[str] = frozenset({"window"})
+# this screen: on another computer's screen it means nothing. ``agent`` is
+# this computer's yes to what an AI agent may do — a setup moved to another
+# computer does not carry its permissions along.
+EXCLUDED_KEYS: frozenset[str] = frozenset({"window", "agent"})
 
 # The keys a legacy setup carries for each section, the PySide build's
 # spellings included (see cmdly.config.migrate).

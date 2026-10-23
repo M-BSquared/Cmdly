@@ -77,6 +77,17 @@ def test_build_never_carries_the_window_size():
     assert "window" not in settings_bundle.build(_setup())["config"]
 
 
+def test_a_bundle_never_carries_the_agent_switch():
+    """The switch is this computer's yes to what an agent may do: a setup
+    moved to another computer does not carry its permissions along."""
+    cfg = _setup()
+    cfg["agent"] = {"terminal_control": True}
+    assert "agent" not in settings_bundle.build(cfg)["config"]
+    merged = settings_bundle.merge(cfg, {"agent": {"terminal_control": False},
+                                         "ui": {"theme": "pink"}}, ["appearance"], secrets=False)
+    assert merged["agent"]["terminal_control"] is True
+
+
 def test_build_does_not_mutate_the_config_it_redacts():
     config = _setup()
     settings_bundle.build(config)

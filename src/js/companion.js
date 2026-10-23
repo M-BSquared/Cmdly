@@ -9,9 +9,11 @@ window.Cmdly = window.Cmdly || {};
   Pressing the card of an SSH computer connects and opens a terminal on it;
   a computer that is only pinged has nothing to open. A right-click on an
   SSH computer's card asks its computer to shut down or reboot (one command
-  over its saved connection, the page never composes the line). Every
-  companion is watched at the same time. A saved SSH connection can be shown
-  here too (its dialog has the switch; see setWatched).
+  over its saved connection, the page never composes the line); sudo's
+  password question is answered by the backend, with the connection's saved
+  login password — and asked for here, once, when there is none saved.
+  Every companion is watched at the same time. A saved SSH connection can
+  be shown here too (its dialog has the switch; see setWatched).
 
   Online is decided here, from pings this computer sends through
   POST /api/local/ping at each companion's interval: online while the last
@@ -334,23 +336,37 @@ Cmdly.companion = (function () {
       confirm: word,
       danger: true,
     }).then((yes) => {
-      if (!yes) return;
-      Cmdly.api.post("/api/ssh/power", { name: c.connection, action })
-        .then((res) => {
-          if (res && res.ok) {
-            store().emit("status", { text: `${who} is ${reboot ? "rebooting" : "shutting down"}`, kind: "ok" });
-          } else {
-            Cmdly.ui.toast({
-              level: "critical",
-              title: `${word} failed`,
-              message: (res && (res.stderr || res.error)) || "The computer did not answer.",
-            });
-          }
-        })
-        .catch((error) => Cmdly.ui.toast({
-          level: "critical", title: `${word} failed`, message: error.message,
-        }));
+      if (yes) sendPowerAction(c, action);
     });
+  }
+
+  /**
+   * One power action over the companion's saved connection. A reply that
+   * says what it needs — the login was refused, sudo asked for a password the
+   * connection has none saved to give — asks for it once and tries again:
+   * the same ask-once rule the launch buttons follow.
+   */
+  function sendPowerAction(c, action, retried) {
+    const who = c.name || c.connection;
+    const reboot = action === "reboot";
+    const word = reboot ? "Reboot" : "Shut down";
+    Cmdly.api.post("/api/ssh/power", { name: c.connection, action })
+      .catch(Cmdly.api.replyOf)
+      .then((res) => {
+        if (res && res.ok) {
+          store().emit("status", { text: `${who} is ${reboot ? "rebooting" : "shutting down"}`, kind: "ok" });
+        } else if (!retried && res && res.needs) {
+          Cmdly.connections.prompt(res).then((saved) => {
+            if (saved) sendPowerAction(c, action, true);
+          });
+        } else {
+          Cmdly.ui.toast({
+            level: "critical",
+            title: `${word} failed`,
+            message: (res && (res.stderr || res.error)) || "The computer did not answer.",
+          });
+        }
+      });
   }
 
   function paint() {

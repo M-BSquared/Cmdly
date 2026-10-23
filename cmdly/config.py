@@ -54,6 +54,15 @@ DEFAULT_UPDATES: dict[str, Any] = {
     "skipped": "",
 }
 
+DEFAULT_AGENT: dict[str, Any] = {
+    # Whether an AI agent connecting over MCP (cmdly/mcp.py) may go beyond
+    # buttons: open terminals here and over SSH and type into them, run
+    # commands in the background, and shut down or reboot this computer and
+    # its companions. Off by default — a person's yes, given once, on this
+    # computer, and never carried to another one by a settings export.
+    "terminal_control": False,
+}
+
 MIN_W, MIN_H = 260, 360
 MAX_W, MAX_H = 4000, 3000
 
@@ -113,6 +122,16 @@ def normalize_updates(raw: Any) -> dict[str, Any]:
     return out
 
 
+def normalize_agent(raw: Any) -> dict[str, Any]:
+    """What an AI agent connecting over MCP may do here.
+
+    ``terminal_control`` is a genuine boolean only: a hand-edited ``"on"``
+    must not read as a yes.
+    """
+    src = raw if isinstance(raw, dict) else {}
+    return {"terminal_control": _bool(src.get("terminal_control"), False)}
+
+
 def normalize_connections(raw: Any) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     names: set[str] = set()
@@ -137,6 +156,7 @@ def migrate(data: Any) -> dict[str, Any]:
         "ui": normalize_ui(src.get("ui"), src.get("theme")),
         "window": normalize_window(src.get("window"), src),
         "updates": normalize_updates(src.get("updates")),
+        "agent": normalize_agent(src.get("agent")),
     }
     return out
 
@@ -255,9 +275,10 @@ class Config:
     def update(self, changes: dict[str, Any]) -> dict[str, Any]:
         """Apply a partial change from the page and store it.
 
-        Takes any of ``buttons``, ``companions``, ``active_companion``, ``ui``
-        and ``updates`` (both merged key by key). Connections have their own calls, because
-        the page never holds their passwords and so cannot send the list back.
+        Takes any of ``buttons``, ``companions``, ``active_companion``, ``ui``,
+        ``updates`` and ``agent`` (the last three merged key by key).
+        Connections have their own calls, because the page never holds their
+        passwords and so cannot send the list back.
         """
         if not isinstance(changes, dict):
             raise ConfigError("expected an object")
@@ -286,6 +307,12 @@ class Config:
                 merged = dict(data["updates"])
                 merged.update(changes["updates"])
                 data["updates"] = normalize_updates(merged)
+            if "agent" in changes:
+                if not isinstance(changes["agent"], dict):
+                    raise ConfigError("agent must be an object")
+                merged = dict(data["agent"])
+                merged.update(changes["agent"])
+                data["agent"] = normalize_agent(merged)
             self._data = data
             self._write(data)
         return self.public()

@@ -233,7 +233,9 @@ Cmdly.connections = (function () {
 
   /**
    * A press could not run for want of a connection (or its login): ask for
-   * it, save it under the name the button carries. Resolves whether it was saved.
+   * it, save it under the name the button carries. Resolves whether it was
+   * saved. The power menu asks too, when sudo wants a password the
+   * connection has none saved to give (`needs` "sudo-password").
    */
   function prompt(reply) {
     const r = reply || {};
@@ -242,10 +244,14 @@ Cmdly.connections = (function () {
     const known = Cmdly.store.connection(name);
     const intro = r.needs === "credentials"
       ? `The login to “${name}” was refused. Check the user and password, or set a key file.`
-      : `This computer has no connection named “${name}” yet. Enter its address and login once; ` +
-        "every button that uses it works from then on.";
+      : r.needs === "sudo-password"
+        ? `sudo on “${name}” asked for a password. Save the connection's login password ` +
+          "and Cmdly types it into sudo itself whenever it shuts that computer down or reboots it."
+        : `This computer has no connection named “${name}” yet. Enter its address and login once; ` +
+          "every button that uses it works from then on.";
     return edit(known || { name }, {
-      title: r.needs === "credentials" ? "Log in again" : "Set up the connection",
+      title: r.needs === "credentials" ? "Log in again"
+        : r.needs === "sudo-password" ? "Save sudo's password" : "Set up the connection",
       intro, lockName: true, name,
     }).then((saved) => !!saved);
   }

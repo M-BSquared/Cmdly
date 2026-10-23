@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import re
 import shlex
+import sys
 import uuid
 from typing import Any
 
@@ -257,14 +258,48 @@ def remote_command(directory: str, command: str, detach: bool) -> str:
 
 
 #: What the companion card's power menu (right-click) may ask for, and the
-#: line each runs over the companion's saved SSH connection: ``sudo`` first —
-#: a companion is usually logged in as a user with passwordless sudo — and
-#: the bare command as the fallback for a root login. Whichever runs takes
-#: the computer down, and the connection with it.
+#: line each runs over the companion's saved SSH connection. ``sudo -S`` reads
+#: sudo's password from the command's input — where the backend sends the
+#: connection's saved login password, which sudo never reads when it needs none
+#: (passwordless sudo, a root login); ``-p ''`` keeps the prompt out of stderr.
+#: The bare command stays the fallback for a root login without sudo.
+#: Whichever runs takes the computer down, and the connection with it.
 POWER_ACTIONS = {
-    "shutdown": "sudo shutdown -h now || shutdown -h now",
-    "reboot": "sudo reboot || reboot",
+    "shutdown": "sudo -S -p '' shutdown -h now || shutdown -h now",
+    "reboot": "sudo -S -p '' reboot || reboot",
 }
+
+#: The same two actions on this computer, by platform family. There is no
+#: password to type into sudo here: ``-n`` makes it fail rather than prompt,
+#: and the bare command stays the fallback for a root shell (Windows' own
+#: ``shutdown`` needs no privileges at all). A refused action is reported
+#: with why, which is all an unattended caller could do with a prompt anyway.
+LOCAL_POWER_ACTIONS: dict[str, dict[str, str]] = {
+    "linux": {
+        "shutdown": "sudo -n shutdown -h now || shutdown -h now",
+        "reboot": "sudo -n reboot || reboot",
+    },
+    "darwin": {
+        "shutdown": "sudo -n shutdown -h now",
+        "reboot": "sudo -n shutdown -r now",
+    },
+    "win32": {
+        "shutdown": "shutdown /s /t 0",
+        "reboot": "shutdown /r /t 0",
+    },
+}
+
+
+def local_power_line(action: Any, platform: str = sys.platform) -> str | None:
+    """The line a power action runs on this computer, or None when there is
+    none (an unknown action, or a platform the table does not cover).
+
+    *platform* is only a seam for the table above; ``sys.platform`` is what
+    runs.
+    """
+    if not isinstance(action, str):
+        return None
+    return LOCAL_POWER_ACTIONS.get(platform, {}).get(action)
 
 
 # ---- companion computers -------------------------------------------------

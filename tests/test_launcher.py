@@ -131,9 +131,27 @@ def test_reachable():
     assert not L.button_reachable({"target": "ssh", "connection": "far"}, comp, True, conns)
 
 
-def test_the_power_actions_run_through_sudo_with_the_bare_command_as_the_fallback():
-    # sudo first (a companion is usually a user with passwordless sudo), the
-    # bare command for a root login; whichever runs takes the computer down.
-    assert L.POWER_ACTIONS["shutdown"] == "sudo shutdown -h now || shutdown -h now"
-    assert L.POWER_ACTIONS["reboot"] == "sudo reboot || reboot"
+def test_the_power_actions_answer_sudos_password_over_the_command_input():
+    # sudo -S reads its password from the command's input, where the backend
+    # sends the connection's saved login password (sudo never reads it when
+    # it needs none), and -p '' keeps the prompt out of stderr; the bare
+    # command stays as the fallback for a root login.
+    assert L.POWER_ACTIONS["shutdown"] == "sudo -S -p '' shutdown -h now || shutdown -h now"
+    assert L.POWER_ACTIONS["reboot"] == "sudo -S -p '' reboot || reboot"
     assert set(L.POWER_ACTIONS) == {"shutdown", "reboot"}
+
+
+def test_the_local_power_lines_fail_rather_than_prompt():
+    # No password to type into sudo here: -n makes it fail instead of asking,
+    # and the bare command stays the fallback for a root shell.
+    assert L.local_power_line("shutdown", "linux") == "sudo -n shutdown -h now || shutdown -h now"
+    assert L.local_power_line("reboot", "darwin") == "sudo -n shutdown -r now"
+    assert L.local_power_line("shutdown", "win32") == "shutdown /s /t 0"
+    for platform in ("linux", "darwin", "win32"):
+        assert set(L.LOCAL_POWER_ACTIONS[platform]) == set(L.POWER_ACTIONS)
+
+
+def test_a_local_power_line_needs_a_known_action_and_platform():
+    assert L.local_power_line("explode") is None
+    assert L.local_power_line(None) is None
+    assert L.local_power_line("shutdown", "plan9") is None

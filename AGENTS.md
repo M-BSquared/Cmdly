@@ -24,6 +24,16 @@ in the code depends on, or is kept in step with, another project.
   in `cmdly/routes/`. Every request must name the server as
   `localhost`/`127.0.0.1` in its Host header; every POST and the WebSocket
   upgrade must come from that origin.
+- `cmdly/mcp.py` is the MCP server: `python -m cmdly mcp` (or
+  `Cmdly.AppImage mcp`, `cmdly/app.py mcp`) gives an AI agent tools over the
+  backend's HTTP API — the same one the page sends, no second way in. Buttons
+  (and reading the computers) are always allowed; pressing a button,
+  terminals, commands, pings and power only with the person's switch in
+  Settings → Agent (`agent.terminal_control` in config.py), which no tool can
+  turn on. Its agent sessions are named `agent/<name>` and shown by the page
+  as terminal windows; a config change from outside reaches the page through
+  the store's poll (js/store.js refreshConfig). The protocol (JSON-RPC over
+  stdio) is implemented there, stdlib only — not through an MCP SDK.
 - Terminals: `ssh_bridge.SshBridge` holds every session by name (SSH and the
   local PTY shell from `local_shell.py` alike). Output goes to the page over
   one WebSocket per terminal (`/api/ssh/ws`), SSE + POSTs as fallback.

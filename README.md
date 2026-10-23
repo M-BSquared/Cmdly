@@ -107,12 +107,16 @@ window manager can blur (KDE's KWin).
   window above other programs', as long as it is on.
 - **Companion power menu:** right-click a companion computer up top and shut
   it down or reboot it — one command over its SSH connection, asked for
-  before it goes.
+  before it goes. A sudo that asks for a password is given the connection's
+  saved login password — asked for once, then answered automatically.
 - **Safe connections:** passwords stay in the backend (`~/.cmdly/config.json`,
   readable only by you) and never reach the page. When you change a connection,
   every button and card follows.
 - **Import/export** of the whole setup, passwords optional.
 - **Update notice** when a new release is out.
+- **MCP:** an AI agent can add buttons for you — and, with one switch in the
+  settings, run commands in your terminals and reboot or shut down this
+  computer and its companions.
 
 ## Installation
 
@@ -137,6 +141,40 @@ The first start creates `.venv` and installs the dependencies from
    login, *Show in the main window* puts the computer at the top.
 2. **Add a button:** *Add* in the main window, then a target and a command.
 3. **Press it.** The arrow in the button opens its terminal right away.
+
+## Let an agent run it (MCP)
+
+Cmdly speaks [MCP](https://modelcontextprotocol.io) (Model Context
+Protocol), so an AI agent — Claude Desktop, Claude Code, Cursor — can work
+with it for you: add a button for the camera stream while you read the logs,
+or fix a command on a companion computer.
+
+```json
+{
+  "mcpServers": {
+    "cmdly": {
+      "command": "python",
+      "args": ["-m", "cmdly", "mcp"],
+      "cwd": "/where/the/Cmdly/checkout/is"
+    }
+  }
+}
+```
+
+A packaged Cmdly takes the argument instead: `/path/to/Cmdly.AppImage mcp`
+on Linux, `Cmdly.app/Contents/MacOS/cmdly mcp` on macOS. Cmdly itself must be
+running; the server finds it on its own.
+
+- **Always:** list, add, change and remove buttons, and see the companion
+  computers and connections. Adding or changing a button changes no
+  computer — pressing it does.
+- **With your switch:** press a button, open terminals here and over SSH,
+  type into them, run commands in the background, ping a computer, and shut
+  down or reboot this computer and its companions. The switch is Settings →
+  Agent → *Control terminals and power*, off by default; no agent can turn it
+  on itself, and it is not carried along by a settings export.
+- **Nothing off screen:** a terminal an agent opens is shown as a window,
+  like any terminal.
 
 <details>
 <summary><strong>Building it yourself</strong></summary>

@@ -37,6 +37,16 @@ Cmdly.store = (function () {
   const listeners = Object.create(null);
   let pollTimer = null;
   let saving = Promise.resolve();
+  // A save this page started, still on its way out: its answer is the newer
+  // config, and a refresh pulled in meanwhile would fight it.
+  let savingOut = false;
+
+  // A session an agent opened over MCP runs under this prefix (cmdly/mcp.py
+  // keeps the other side in step, as js/launch.js keeps the button one).
+  const AGENT_PREFIX = "agent/";
+  // The last /api/ssh/sessions answer: what a live session runs on, for the
+  // terminal window an agent's session is shown in.
+  let sessionRows = [];
 
   function on(name, fn) {
     (listeners[name] = listeners[name] || new Set()).add(fn);
@@ -76,13 +86,14 @@ Cmdly.store = (function () {
   function save(changes) {
     Object.keys(changes).forEach((k) => { state.config[k] = changes[k]; });
     emit("config");
+    savingOut = true;
     saving = saving.then(() => api.post("/api/config", changes)).then((res) => {
       if (res && res.config) {
         state.config = res.config;
         emit("config");
       }
       return res;
-    });
+    }).finally(() => { savingOut = false; });
     return saving.catch((error) => {
       Cmdly.ui.toast({ level: "warning", title: "Not saved", message: error.message });
       saving = Promise.resolve();
@@ -134,17 +145,42 @@ Cmdly.store = (function () {
   /** Ask which sessions are up; never rejects (unreachable means none). */
   function refreshLive() {
     return api.get("/api/ssh/sessions").then((data) => {
+      sessionRows = (data && data.sessions) || [];
       const next = Object.create(null);
-      ((data && data.sessions) || []).forEach((s) => { if (s && s.connected) next[s.name] = true; });
+      sessionRows.forEach((s) => { if (s && s.connected) next[s.name] = true; });
       setLive(next);
-    }).catch(() => setLive(Object.create(null)));
+    }).catch(() => { sessionRows = []; setLive(Object.create(null)); });
   }
 
   function setLive(next) {
+    const added = Object.keys(next).filter((name) => !state.live[name]);
     const before = Object.keys(state.live).sort().join("\n");
     const after = Object.keys(next).sort().join("\n");
     state.live = next;
     if (before !== after) emit("live");
+    if (added.some((name) => name.indexOf(AGENT_PREFIX) === 0)) showAgentSessions(added);
+  }
+
+  /**
+   * An agent's session came up: show the terminal, so what an agent types is
+   * never happening off screen. Closing the window leaves the session alone,
+   * as with any terminal; the session stays until it is disconnected.
+   */
+  function showAgentSessions(names) {
+    if (!Cmdly.termWindows || typeof Cmdly.termWindows.open !== "function") return;
+    names.forEach((name) => {
+      if (name.indexOf(AGENT_PREFIX) !== 0) return;
+      const row = sessionRows.find((s) => s && s.name === name) || {};
+      // A local shell's row says so itself; an SSH one names its host.
+      const local = !row.host || (Cmdly.launch && row.host === Cmdly.launch.LOCAL_HOST);
+      Cmdly.termWindows.open({
+        name,
+        title: "Agent: " + name.slice(AGENT_PREFIX.length),
+        host: local ? "this computer" : String(row.host || ""),
+        port: local ? 0 : row.port,
+        username: local ? "" : String(row.username || ""),
+      });
+    });
   }
 
   function markLive(name, up) {
@@ -156,21 +192,55 @@ Cmdly.store = (function () {
 
   function isLive(name) { return !!state.live[name]; }
 
+  /**
+   * Pull in a config this page did not write — an agent over MCP added a
+   * button, say — so the shelf shows what is saved, not only what this page
+   * last wrote. Nothing happens when the config is the same; a save of this
+   * own on its way out wins, because its answer is the newer one.
+   */
+  function refreshConfig() {
+    if (savingOut) return Promise.resolve();
+    const before = state.config;
+    return api.get("/api/config").then((data) => {
+      if (!data || !data.config || savingOut) return;
+      const next = data.config;
+      if (JSON.stringify(next) === JSON.stringify(before)) return;
+      // The one change a person sees coming from outside: buttons moved on
+      // the shelf without this window doing it. Said out loud, because a
+      // shelf that changes on its own looks like a bug.
+      const shelfChanged = JSON.stringify(next.buttons || []) !== JSON.stringify(before.buttons || []);
+      state.config = next;
+      state.connections = next.connections || [];
+      emit("config");
+      emit("connections");
+      if (shelfChanged && Cmdly.ui && Cmdly.ui.toast) {
+        Cmdly.ui.toast({
+          level: "info",
+          title: "Shelf changed",
+          message: "Buttons were added or removed from outside this window (an agent over MCP).",
+        });
+      }
+    }).catch(() => {});
+  }
+
   function startPolling() {
     if (pollTimer !== null) return;
     pollTimer = setInterval(() => {
       // A hidden window has no rows to repaint; it catches up when shown.
       if (document.hidden) return;
       refreshLive();
+      refreshConfig();
     }, LIVE_POLL_MS);
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshLive(); });
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) { refreshLive(); refreshConfig(); }
+    });
     if (Cmdly.sshTerm && typeof Cmdly.sshTerm.onSessionEnded === "function") {
       Cmdly.sshTerm.onSessionEnded((name) => markLive(name, false));
     }
   }
 
   return {
-    state, on, emit, load, save, setUi,
+    state, on, emit, load, save, setUi, refreshConfig,
     loadConnections, saveConnection, removeConnection, connection, setConnections,
     refreshLive, markLive, isLive, startPolling, LIVE_POLL_MS,
   };

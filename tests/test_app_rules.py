@@ -14,6 +14,12 @@ def test_parse_port_arg():
     assert app.parse_port_arg(["cmdly", "70000"], 8765)[1]
 
 
+def test_the_mcp_launch_is_its_own_process():
+    assert app.is_mcp_arg(["cmdly/app.py", "mcp"])
+    assert not app.is_mcp_arg(["cmdly/app.py"])
+    assert not app.is_mcp_arg(["cmdly/app.py", "9000"])
+
+
 def test_a_terminal_window_may_show_only_this_backends_pages():
     assert app.popout_url_allowed("http://localhost:8765/popout.html?key=term:x", 8765)
     assert app.popout_url_allowed("about:blank", 8765)

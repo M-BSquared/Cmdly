@@ -5,9 +5,10 @@ interface) and a small JSON API to it:
 
 * ``/api/config``          the settings (no password ever leaves here)
 * ``/api/ssh/connections`` the saved SSH connections
-* ``/api/ssh/*``           terminal sessions: connect, type, resize, stream,
-                           disconnect; a one-shot background run
-* ``/api/local/*``         the same for this computer, plus one ICMP ping
+* ``/api/ssh/*``           terminal sessions: connect, type, resize, read,
+                           stream, disconnect; a one-shot background run
+* ``/api/local/*``         the same for this computer, plus one ICMP ping and
+                           its own reboot and shutdown
 * ``/api/update*``         is there a newer release, dismiss it, open its page
 
 A terminal's output reaches the page over one WebSocket per terminal
@@ -43,7 +44,7 @@ from . import launcher, local_shell, net_probe, websocket
 from .config import Config, ConfigError
 from .routes.settings import SettingsRoutes
 from .routing import _ROUTES, route
-from .ssh_bridge import SshBridge, run_command
+from .ssh_bridge import REPLAY_LIMIT, SshBridge, run_command
 from .update_check import UpdateChecker, open_url
 from .version import get_version
 
@@ -115,6 +116,23 @@ def _libraries() -> list[dict[str, str]]:
         {"name": "Inter, JetBrains Mono", "version": "", "license": "OFL-1.1",
          "role": "Type on Linux, and the terminal's monospace face"},
     ]
+
+
+def _sudo_password_hint(stderr: str, sent: bool) -> str:
+    """What sudo's password complaint means here, in words the page can show.
+
+    The saved login password is what the backend types into sudo; refused
+    when that machine's sudo password differs from it, never sent when the
+    connection has none saved (a key login, say).
+    """
+    hint = (
+        "sudo did not accept the connection's saved login password — on that "
+        "machine sudo may ask for a different one."
+        if sent else
+        "sudo asked for a password and the connection has none saved. Saving "
+        "its login password lets Cmdly answer sudo itself."
+    )
+    return f"{stderr.rstrip()}\n{hint}" if stderr.rstrip() else hint
 
 
 class Handler(SettingsRoutes, BaseHTTPRequestHandler):
@@ -510,6 +528,30 @@ class Handler(SettingsRoutes, BaseHTTPRequestHandler):
             return
         self._send_json({"ok": self.app.ssh.disconnect(name)})
 
+    @route("GET", "/api/ssh/output")
+    def _api_ssh_output(self) -> None:
+        """One session's terminal so far, as a single snapshot of its scrollback.
+
+        The page streams a terminal live (the WebSocket, SSE as the
+        fallback); this is the once-and-done read of a client that has no
+        stream — an agent over MCP, which types a line and wants to see what
+        came of it. ``tail`` bounds the bytes, from 1 to the replay buffer's
+        own ceiling.
+        """
+        query = self._query()
+        name = query.get("name", "")
+        try:
+            tail = int(query.get("tail", "65536"))
+        except ValueError:
+            tail = 65536
+        tail = max(1, min(tail, REPLAY_LIMIT))
+        session = self.app.ssh.get_session(name) if name else None
+        if session is None:
+            self._error(f"There is no session named “{name}”.", 404)
+            return
+        self._send_json({"name": name, "connected": session.connected,
+                         "output": session.snapshot(tail)})
+
     @route("POST", "/api/ssh/run")
     def _api_ssh_run(self, payload: dict) -> None:
         """One command over its own short-lived connection; ``detach`` runs it
@@ -543,7 +585,14 @@ class Handler(SettingsRoutes, BaseHTTPRequestHandler):
     def _api_ssh_power(self, payload: dict) -> None:
         """Shut the connection's computer down or reboot it: one command over
         its own short-lived connection (the companion card's right-click
-        menu). The line comes from the backend, never the page."""
+        menu). The line comes from the backend, never the page.
+
+        sudo's password question is answered here: ``sudo -S`` reads it from
+        the command's input, and the connection's saved login password is
+        typed in there (sudo never reads it when it needs none — passwordless
+        sudo, root). Without one saved, sudo gets EOF and the reply carries
+        what the page should ask for, so saving it and trying again is all
+        it takes."""
         name, action = payload.get("name"), payload.get("action")
         if action not in launcher.POWER_ACTIONS:
             self._error("action must be one of: " + ", ".join(sorted(launcher.POWER_ACTIONS)))
@@ -561,9 +610,20 @@ class Handler(SettingsRoutes, BaseHTTPRequestHandler):
             return
         result = run_command(host=conn["host"], command=launcher.POWER_ACTIONS[action],
                              port=conn["port"], username=conn["username"],
-                             password=conn["password"] or None, key_path=conn["key_path"] or None)
+                             password=conn["password"] or None, key_path=conn["key_path"] or None,
+                             stdin=f"{conn['password']}\n" if conn["password"] else "")
         if result.pop("auth_failed", False):
             result.update(needs="credentials", connection=name)
+        elif (
+            not result["ok"]
+            and result["exit_status"] is not None
+            and "password" in result["stderr"].lower()
+        ):
+            # The login held (the command ran) but sudo asked for a password.
+            # A reply that says what it needs lets the page ask for it once.
+            result["stderr"] = _sudo_password_hint(result["stderr"], bool(conn["password"]))
+            if not conn["password"]:
+                result.update(needs="sudo-password", connection=name)
         self._send_json(result)
 
     @route("GET", "/api/ssh/stream")
@@ -738,6 +798,27 @@ class Handler(SettingsRoutes, BaseHTTPRequestHandler):
             return
         result = self.app.local.run(command, directory)
         result["command"] = command
+        self._send_json(result)
+
+    @route("POST", "/api/local/power")
+    def _api_local_power(self, payload: dict) -> None:
+        """Shut this computer down or reboot it (an agent's tool; a person
+        shuts a companion down from its card, never this computer from here).
+
+        The line is the backend's, never the caller's, and there is no
+        password to type into sudo on this computer: ``sudo -n`` fails rather
+        than prompts, and the bare command stays the fallback for a root
+        shell. A reply that says why it was refused is all an unattended
+        caller can act on.
+        """
+        if not self._local_only():
+            return
+        line = launcher.local_power_line(payload.get("action"))
+        if line is None:
+            self._error("action must be one of: " + ", ".join(sorted(launcher.POWER_ACTIONS)))
+            return
+        result = self.app.local.run(line)
+        result["command"] = line
         self._send_json(result)
 
     @route("POST", "/api/local/ping")

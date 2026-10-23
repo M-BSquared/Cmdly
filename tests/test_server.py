@@ -8,6 +8,8 @@ import time
 
 import pytest
 
+from cmdly import launcher
+from cmdly import server as server_module
 from cmdly.config import Config
 from cmdly.server import CmdlyServer, serve_in_thread
 
@@ -103,6 +105,77 @@ def test_the_power_menu_names_its_actions_and_needs_the_connection(server):
     assert status == 400 and body["needs"] == "connection" and body["connection"] == "pi"
 
 
+def _save_connection(server, **fields) -> str:
+    status, body = request(server, "POST", "/api/ssh/connections",
+                           {"host": "10.0.0.2", "username": "pi", **fields})
+    assert status == 200 and body["ok"] is True
+    return body["connection"]["name"]
+
+
+def _power_run_result(**result) -> dict:
+    return {"ok": False, "exit_status": None, "stdout": "", "stderr": "",
+            "error": "did not run", "auth_failed": False, **result}
+
+
+def test_the_power_action_types_the_saved_login_password_into_sudo(server, monkeypatch):
+    """sudo -S reads its password from the command's input, so a computer
+    whose sudo asks for one is shut down all the same."""
+    name = _save_connection(server, password="raspberry")
+    sent = {}
+
+    def run_command(**kwargs):
+        sent.update(kwargs)
+        return _power_run_result(ok=True, exit_status=0, error="")
+
+    monkeypatch.setattr(server_module, "run_command", run_command)
+    status, body = request(server, "POST", "/api/ssh/power", {"name": name, "action": "shutdown"})
+    assert status == 200 and body["ok"] is True
+    assert sent["command"] == launcher.POWER_ACTIONS["shutdown"]
+    assert sent["stdin"] == "raspberry\n"
+
+
+def test_the_power_action_without_a_saved_password_closes_sudos_input(server, monkeypatch):
+    """A key login has no password to give sudo: sudo sees EOF instead of a
+    wait until the timeout, and the reply says what the page should ask for."""
+    name = _save_connection(server, key_path="~/.ssh/id_ed25519")
+    sent = {}
+
+    def run_command(**kwargs):
+        sent.update(kwargs)
+        return _power_run_result(exit_status=1, stderr="sudo: no password was provided\n",
+                                  error="command exited with status 1")
+
+    monkeypatch.setattr(server_module, "run_command", run_command)
+    status, body = request(server, "POST", "/api/ssh/power", {"name": name, "action": "reboot"})
+    assert status == 200 and body["ok"] is False
+    assert sent["stdin"] == ""
+    assert body["needs"] == "sudo-password" and body["connection"] == name
+    assert "login password" in body["stderr"]
+
+
+def test_the_power_action_names_which_password_sudo_did_not_accept(server, monkeypatch):
+    """The saved login password reached sudo and was refused: not a question
+    the page can answer with a save — the reply says which password failed."""
+    name = _save_connection(server, password="raspberry")
+    monkeypatch.setattr(server_module, "run_command",
+                        lambda **kwargs: _power_run_result(
+                            exit_status=1, stderr="sudo: 1 incorrect password attempt\n",
+                            error="command exited with status 1"))
+    status, body = request(server, "POST", "/api/ssh/power", {"name": name, "action": "shutdown"})
+    assert status == 200 and body["ok"] is False
+    assert "needs" not in body
+    assert "sudo did not accept the connection's saved login password" in body["stderr"]
+
+
+def test_the_power_action_with_a_refused_login_says_what_it_needs(server, monkeypatch):
+    name = _save_connection(server, password="raspberry")
+    monkeypatch.setattr(server_module, "run_command",
+                        lambda **kwargs: _power_run_result(auth_failed=True))
+    status, body = request(server, "POST", "/api/ssh/power", {"name": name, "action": "shutdown"})
+    assert status == 200 and body["ok"] is False
+    assert body["needs"] == "credentials" and body["connection"] == name
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="a pseudo-terminal is POSIX only")
 def test_a_local_terminal_session_from_connect_to_disconnect(server):
     status, body = request(server, "POST", "/api/local/connect", {"name": "cmdly/t"})
@@ -127,6 +200,41 @@ def test_a_local_terminal_session_from_connect_to_disconnect(server):
 def test_a_background_program_that_fails_at_once_says_so(server):
     _, body = request(server, "POST", "/api/local/run", {"command": "echo nope; exit 3"})
     assert body["exited"] is True and body["code"] == 3 and "nope" in body["output"]
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="a pseudo-terminal is POSIX only")
+def test_the_output_route_returns_a_sessions_terminal_so_far(server):
+    """The once-and-done read of a client with no stream (an agent over MCP):
+    the scrollback as one snapshot, its tail bounded."""
+    _, body = request(server, "POST", "/api/local/connect", {"name": "cmdly/t"})
+    assert body["connected"] is True
+    _, body = request(server, "POST", "/api/ssh/send", {"name": "cmdly/t", "data": "echo cmdly-$((40+2))\n"})
+    session = server.ssh.get_session("cmdly/t")
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline and "cmdly-42" not in session.snapshot():
+        time.sleep(0.05)
+    _, body = request(server, "GET", "/api/ssh/output?name=cmdly/t")
+    assert body["connected"] is True and "cmdly-42" in body["output"]
+    _, body = request(server, "GET", "/api/ssh/output?name=cmdly/t&tail=5")
+    assert len(body["output"]) == 5
+    status, body = request(server, "GET", "/api/ssh/output?name=cmdly/nope")
+    assert status == 404 and body["ok"] is False
+    request(server, "POST", "/api/ssh/disconnect", {"name": "cmdly/t"})
+
+
+def test_the_local_power_route_runs_the_backends_own_line(server, monkeypatch):
+    sent = {}
+
+    def run(command, directory=""):
+        sent["command"] = command
+        return {"ok": False, "exited": True, "code": 1, "output": "shutdown: you must be root"}
+
+    monkeypatch.setattr(server.local, "run", run)
+    status, body = request(server, "POST", "/api/local/power", {"action": "explode"})
+    assert status == 400 and body["ok"] is False
+    status, body = request(server, "POST", "/api/local/power", {"action": "shutdown"})
+    assert status == 200 and body["ok"] is False and "you must be root" in body["output"]
+    assert sent["command"] == launcher.local_power_line("shutdown")
 
 
 @pytest.mark.parametrize("payload", [{"name": "x", "cols": 0, "rows": 5}, {"name": "x", "cols": True, "rows": 5},
