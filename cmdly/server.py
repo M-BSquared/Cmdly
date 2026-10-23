@@ -9,6 +9,8 @@ interface) and a small JSON API to it:
                            stream, disconnect; a one-shot background run
 * ``/api/local/*``         the same for this computer, plus one ICMP ping and
                            its own reboot and shutdown
+* ``/api/agent/*``         this Cmdly as an MCP server: the command line an
+                           agent app should run, and a self-test of it
 * ``/api/update*``         is there a newer release, dismiss it, open its page
 
 A terminal's output reaches the page over one WebSocket per terminal
@@ -763,6 +765,26 @@ class Handler(SettingsRoutes, BaseHTTPRequestHandler):
             cols, rows = msg.get("cols"), msg.get("rows")
             if all(isinstance(v, int) and not isinstance(v, bool) and 1 <= v <= 1000 for v in (cols, rows)):
                 self.app.ssh.resize(name, cols, rows)
+
+    # ---- this Cmdly as an MCP server -------------------------------------------
+
+    @route("GET", "/api/agent/mcp")
+    def _api_agent_mcp(self) -> None:
+        """The command line an agent app should run to speak to this Cmdly's
+        MCP server — this AppImage, this .app, or this checkout's Python,
+        whichever this is — for the Settings' Agent page's setup guide."""
+        from .mcp import mcp_command
+        self._send_json({"ok": True, **mcp_command()})
+
+    @route("POST", "/api/agent/mcp/test")
+    def _api_agent_mcp_test(self, payload: dict) -> None:
+        """Start the MCP server once, as an agent app starts it, and shake
+        hands — the Settings' test button, so nobody opens a terminal to
+        check that it answers."""
+        if not self._local_only():
+            return
+        from .mcp import self_test
+        self._send_json(self_test())
 
     # ---- this computer ---------------------------------------------------------
 

@@ -33,6 +33,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import subprocess
 import sys
 import time
 import uuid
@@ -236,6 +238,77 @@ def session_name(name: Any) -> str:
 def _read_terminal(client: CmdlyClient, name: str, tail: int) -> str:
     query = urlencode({"name": name, "tail": max(1, min(tail, MAX_TAIL))})
     return _text(client.get(f"/api/ssh/output?{query}").get("output"))
+
+
+def mcp_command(env: dict[str, str] | None = None, executable: str = "") -> dict[str, Any]:
+    """The command line an agent app should run to speak to THIS Cmdly's MCP
+    server: the AppImage or the .app itself where Cmdly is packaged (both
+    carry their Python with them), and this checkout's Python elsewhere —
+    its venv when run.sh made one. *env* and *executable* are the seams the
+    tests use; ``os.environ`` and ``sys.executable`` are what runs.
+
+    The Settings' Agent page turns this into the config of an agent app
+    (OpenCode, Codex): the exact command, for the Cmdly that is running.
+    """
+    env = os.environ if env is None else env
+    sys_exe = executable or sys.executable
+    image = env.get("APPIMAGE")
+    if image:
+        return {"command": [image, "mcp"], "env": {}}
+    if sys.platform == "darwin" and ".app/Contents/" in sys_exe:
+        app = sys_exe.split(".app/Contents/", 1)[0] + ".app"
+        return {"command": [os.path.join(app, "Contents", "MacOS", "cmdly"), "mcp"], "env": {}}
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    venv = os.path.join(root, ".venv", "bin", "python")
+    python = venv if os.path.exists(venv) else sys_exe
+    return {"command": [python, "-m", "cmdly", "mcp"], "env": {"PYTHONPATH": root}}
+
+
+def self_test(timeout: float = 30.0) -> dict[str, Any]:
+    """Start this Cmdly's MCP server once, exactly as an agent app starts
+    it, and shake hands: does it answer ``initialize`` and list its tools?
+
+    The Settings' test button, so nobody opens a terminal to check. Nothing
+    is left running — the server ends when its input does.
+    """
+    spec = mcp_command()
+    env = dict(os.environ)
+    env.update(spec["env"])
+    try:
+        proc = subprocess.Popen(spec["command"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, env=env, text=True)
+    except OSError as exc:
+        return {"ok": False, "error": f"could not start it: {exc}", "tools": [], "version": ""}
+    script = "\n".join([
+        json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
+        json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}),
+        json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}),
+    ]) + "\n"
+    try:
+        out, err = proc.communicate(script, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.communicate()
+        return {"ok": False, "error": "it did not answer in time", "tools": [], "version": ""}
+    tools: list[str] = []
+    version = ""
+    for line in out.splitlines():
+        try:
+            msg = json.loads(line)
+        except ValueError:
+            continue
+        result = msg.get("result") if isinstance(msg, dict) else None
+        if not isinstance(result, dict):
+            continue
+        if msg.get("id") == 1:
+            version = _text((result.get("serverInfo") or {}).get("version"))
+        elif msg.get("id") == 2:
+            tools = sorted(_text(t.get("name")) for t in result.get("tools") or []
+                            if isinstance(t, dict))
+    if version and tools:
+        return {"ok": True, "error": "", "tools": tools, "version": version}
+    return {"ok": False, "error": (err or out).strip()[-500:] or "no answer",
+            "tools": tools, "version": version}
 
 
 def _connection_of(config: dict[str, Any], wanted: str) -> str:

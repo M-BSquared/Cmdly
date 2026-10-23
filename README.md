@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2026.10.23-f7ebe1?style=for-the-badge" height="28" alt="Version 2026.10.23" />
+  <img src="https://img.shields.io/badge/Version-2026.10.23.1-f7ebe1?style=for-the-badge" height="28" alt="Version 2026.10.23.1" />
   <img width="8" />
   <a href="https://www.python.org/" target="_blank"><img src="https://img.shields.io/badge/Python_3.12%2B-3776AB?logo=python&logoColor=white&style=for-the-badge" height="28" alt="Python 3.12+" /></a>
   <img width="8" />
@@ -163,7 +163,9 @@ or fix a command on a companion computer.
 
 A packaged Cmdly takes the argument instead: `/path/to/Cmdly.AppImage mcp`
 on Linux, `Cmdly.app/Contents/MacOS/cmdly mcp` on macOS. Cmdly itself must be
-running; the server finds it on its own.
+running; the server finds it on its own. Settings → Agent shows your exact
+command, copy-ready config blocks for OpenCode and Codex, and a one-press
+test that starts the server once and sees that it answers.
 
 - **Always:** list, add, change and remove buttons, and see the companion
   computers and connections. Adding or changing a button changes no

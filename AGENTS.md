@@ -32,8 +32,11 @@ in the code depends on, or is kept in step with, another project.
   Settings → Agent (`agent.terminal_control` in config.py), which no tool can
   turn on. Its agent sessions are named `agent/<name>` and shown by the page
   as terminal windows; a config change from outside reaches the page through
-  the store's poll (js/store.js refreshConfig). The protocol (JSON-RPC over
-  stdio) is implemented there, stdlib only — not through an MCP SDK.
+  the store's poll (js/store.js refreshConfig). The Settings' Agent page
+  builds each agent app's config from `mcp_command()` (this installation's
+  exact command) and self-tests the server (`self_test()`, behind
+  `POST /api/agent/mcp/test`). The protocol (JSON-RPC over stdio) is
+  implemented there, stdlib only — not through an MCP SDK.
 - Terminals: `ssh_bridge.SshBridge` holds every session by name (SSH and the
   local PTY shell from `local_shell.py` alike). Output goes to the page over
   one WebSocket per terminal (`/api/ssh/ws`), SSE + POSTs as fallback.

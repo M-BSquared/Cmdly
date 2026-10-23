@@ -8,6 +8,7 @@ discovery itself is the point — it has its seams.
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 
@@ -321,6 +322,41 @@ def test_ping_says_whether_a_computer_answers(server, client, monkeypatch):
     assert not is_error and "did not answer" in text
     text, is_error = call(client, "ping", {"host": "-bad-"})
     assert is_error and "not an IP address" in text
+
+
+# ---------------------------------------------------------------------------
+# what an agent app should run, and whether it answers
+# ---------------------------------------------------------------------------
+
+
+def test_an_appimage_speaks_with_itself_as_the_mcp_server():
+    spec = mcp.mcp_command(env={"APPIMAGE": "/opt/Cmdly.AppImage"})
+    assert spec == {"command": ["/opt/Cmdly.AppImage", "mcp"], "env": {}}
+
+
+def test_a_macos_app_launches_through_its_own_launcher(monkeypatch):
+    monkeypatch.setattr(mcp.sys, "platform", "darwin")
+    spec = mcp.mcp_command(
+        env={}, executable="/x/Cmdly.app/Contents/Frameworks/Python.framework/Versions/3.12/Python")
+    assert spec == {"command": ["/x/Cmdly.app/Contents/MacOS/cmdly", "mcp"], "env": {}}
+
+
+def test_a_checkout_names_its_python_and_its_root():
+    spec = mcp.mcp_command(env={}, executable="/usr/bin/python3")
+    assert spec["command"][1:] == ["-m", "cmdly", "mcp"]
+    assert spec["env"]["PYTHONPATH"] == os.path.dirname(os.path.dirname(mcp.__file__))
+
+
+def test_the_mcp_server_answers_a_handshake(server, client):
+    """The Settings' test button: the very command an agent app would run,
+    started once, answered — and nothing left running."""
+    spec = client.get("/api/agent/mcp")
+    assert spec["command"][-3:] == ["-m", "cmdly", "mcp"]
+    assert spec["env"]["PYTHONPATH"]
+    result = client.post("/api/agent/mcp/test", {})
+    assert result["ok"] is True, result["error"]
+    assert result["version"] == mcp.get_version()
+    assert {"add_button", "press_button", "power"} <= set(result["tools"])
 
 
 def test_status_tells_the_agent_where_things_stand(server, client):

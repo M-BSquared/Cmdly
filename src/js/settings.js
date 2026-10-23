@@ -142,6 +142,137 @@ Cmdly.settings = (function () {
     return wrap;
   }
 
+  // ---- the agent page ---------------------------------------------------------
+
+  /* The setup guide is filled from GET /api/agent/mcp: the exact command of
+     this installation (an AppImage, a .app, or this checkout's Python), so
+     the snippets are true wherever Cmdly runs from. */
+
+  /** The OpenCode config block; the CLI and the desktop app read the same file. */
+  function opencodeSnippet(spec) {
+    const s = spec || {};
+    const command = Array.isArray(s.command) ? s.command : [];
+    const env = s.env || {};
+    const text = JSON.stringify({
+      mcp: { servers: { cmdly: { type: "local", command: command, environment: env } } },
+    }, null, 2);
+    const parts = ["opencode", "mcp", "add", "cmdly"];
+    Object.keys(env).forEach((key) => { parts.push("--env", key + "=" + env[key]); });
+    parts.push("--global", "--");
+    return { text: text, cli: parts.concat(command).map(quotePosix).join(" ") };
+  }
+
+  /** The Codex config block; CLI, IDE extension and desktop app share the file. */
+  function codexSnippet(spec) {
+    const s = spec || {};
+    const command = Array.isArray(s.command) ? s.command : [];
+    const env = s.env || {};
+    const q = (v) => JSON.stringify(String(v));
+    const lines = ["[mcp_servers.cmdly]", "command = " + q(command[0] || "")];
+    if (command.length > 1) lines.push("args = [" + command.slice(1).map(q).join(", ") + "]");
+    const keys = Object.keys(env);
+    if (keys.length) lines.push("env = { " + keys.map((k) => q(k) + " = " + q(env[k])).join(", ") + " }");
+    return { text: lines.join("\n") };
+  }
+
+  /** A word for a shell, quoted when it needs it. */
+  function quotePosix(word) {
+    const text = String(word);
+    return /^[A-Za-z0-9_@%+=:,./-]*$/.test(text) ? text : "'" + text.replace(/'/g, "'\\''") + "'";
+  }
+
+  function copyText(text, title, message) {
+    const say = (ok) => Cmdly.ui.toast(ok
+      ? { level: "info", title: title, message: message }
+      : { level: "warning", title: title, message: "Select the text and copy it by hand." });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => say(true), () => say(fallback()));
+      return;
+    }
+    say(fallback());
+    function fallback() {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      ta.remove();
+      return ok;
+    }
+  }
+
+  function agentAppBlock(label, snippet, info) {
+    const wrap = document.createElement("div");
+    const code = document.createElement("pre");
+    code.className = "path";
+    code.textContent = snippet.text;
+    wrap.appendChild(ui().field({ label: label, control: code, info: info }));
+    wrap.appendChild(ui().actions([ui().button({
+      variant: "secondary", icon: "clipboard", label: "Copy",
+      title: "Copy this block, to paste it into the agent app's config",
+      onClick: () => copyText(snippet.text, "Copied", "Paste it into your agent app's config."),
+    })]));
+    return wrap;
+  }
+
+  function fillAgentGuide(container) {
+    return Cmdly.api.get("/api/agent/mcp").then((spec) => {
+      if (!container || !container.isConnected) return;
+      const opencode = opencodeSnippet(spec);
+      const codex = codexSnippet(spec);
+      container.appendChild(agentAppBlock(
+        "OpenCode (CLI and desktop app)", opencode,
+        "Both read ~/.config/opencode/opencode.json. If the file already has an " +
+        "“mcp” object, put “servers” inside it; the change is taken up without a " +
+        "restart. A terminal once instead:\n" + opencode.cli + "\n\n" +
+        "You never start the MCP server yourself: the agent app runs the command " +
+        "and talks to it over its stdin and stdout. Cmdly itself must be running.",
+      ));
+      container.appendChild(agentAppBlock(
+        "Codex (CLI, IDE extension and desktop app)", codex,
+        "All of them share ~/.codex/config.toml. In the ChatGPT desktop app you can " +
+        "add it by hand instead: Settings → MCP servers → Add server, name it " +
+        "“cmdly”, choose STDIO, give the command. Type /mcp in Codex to see it " +
+        "connected.\n\n" +
+        "You never start the MCP server yourself: the agent app runs the command " +
+        "and talks to it over its stdin and stdout. Cmdly itself must be running.",
+      ));
+      const testBtn = ui().button({
+        variant: "secondary", icon: "activity", label: "Test the MCP server",
+        title: "Start it once, as an agent app starts it, and see that it answers",
+        onClick: () => {
+          ui().setBusy(testBtn, true);
+          Cmdly.api.post("/api/agent/mcp/test", {}).then((res) => {
+            if (res && res.ok) {
+              Cmdly.ui.toast({
+                level: "info", title: "The MCP server answers",
+                message: "It offers " + (res.tools || []).length + " tools — an agent app will find it.",
+              });
+            } else {
+              Cmdly.ui.toast({
+                level: "warning", title: "The MCP server did not answer",
+                message: String((res && res.error) || "no answer").split("\n").slice(-2).join(" "),
+              });
+            }
+          }).catch((error) => {
+            Cmdly.ui.toast({ level: "warning", title: "Not tested", message: error.message });
+          }).finally(() => ui().setBusy(testBtn, false));
+        },
+      });
+      container.appendChild(ui().actions([testBtn]));
+      ui().refreshIcons();
+    }).catch(() => {
+      if (!container || !container.isConnected) return;
+      const none = document.createElement("div");
+      none.className = "list-empty";
+      none.textContent = "This Cmdly's MCP command could not be read.";
+      container.appendChild(none);
+    });
+  }
+
   function agent() {
     const cfg = store().state.config.agent || {};
     const wrap = document.createElement("div");
@@ -160,20 +291,9 @@ Cmdly.settings = (function () {
         "and no agent can switch this on itself. A terminal an agent opens is " +
         "shown as a window, so nothing it types happens off screen."),
     ]));
-    const cmd = document.createElement("code");
-    cmd.className = "path";
-    cmd.textContent = "python -m cmdly mcp";
-    wrap.appendChild(group("Add Cmdly to an agent app", [
-      ui().field({
-        label: "Command",
-        control: cmd,
-        info: "Run this from the Cmdly folder in your agent app (Claude Desktop, " +
-          "Claude Code, Cursor…), with the folder as the command's working " +
-          "directory. A packaged Cmdly is asked the same thing with the AppImage " +
-          "instead: …/Cmdly.AppImage mcp.\n\nThe server talks to the agent over " +
-          "its stdin and stdout; Cmdly itself must be running.",
-      }),
-    ]));
+    const guide = document.createElement("div");
+    wrap.appendChild(group("Add Cmdly to an agent app", [guide]));
+    fillAgentGuide(guide);
     return wrap;
   }
 
@@ -345,5 +465,5 @@ Cmdly.settings = (function () {
     dialog.open();
   }
 
-  return { open };
+  return { open, opencodeSnippet, codexSnippet };
 })();
