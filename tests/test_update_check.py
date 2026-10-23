@@ -5,9 +5,8 @@ Three things drive the coverage here:
 
 * **Nothing may reach the network.** Every test stubs ``urlopen`` or the
   checker itself, and every cache lives under ``tmp_path``.
-* **No repository, no check.** :data:`cmdly.update_check.REPO` is empty until
-  Cmdly is published; the checker must then ask nothing, store nothing and
-  report no error.
+* **No repository, no check.** An empty :data:`cmdly.update_check.REPO` (a
+  private fork, say) must ask nothing, store nothing and report no error.
 * **False positives are the real failure mode.** An update notice for a
   version that does not exist, or one that keeps re-appearing after it was
   dismissed, is worse than no notice — so the version comparison, the
@@ -89,10 +88,11 @@ def test_the_running_version_parses() -> None:
 # The repository setting
 # ---------------------------------------------------------------------------
 
-def test_the_repository_is_not_set_yet() -> None:
-    """Placeholder until Cmdly is published: the check is off by construction."""
-    assert update_check.REPO == ""
-    assert configured_repo() == ""
+def test_the_shipped_repository_is_the_public_one() -> None:
+    """The releases to check: the public repository, so every install hears
+    of a newer one."""
+    assert update_check.REPO == "M-BSquared/Cmdly"
+    assert configured_repo() == "M-BSquared/Cmdly"
 
 
 @pytest.mark.parametrize("repo,expected", [
@@ -131,10 +131,11 @@ def test_without_a_repository_nothing_is_fetched_or_stored(tmp_path, no_network)
 def test_the_default_checker_follows_the_module_constant(tmp_path, no_network, monkeypatch) -> None:
     no_network([_release("v2000.10.02")])
     checker = UpdateChecker(state_dir=str(tmp_path))
-    assert checker.check()["configured"] is False
+    monkeypatch.setattr(update_check, "REPO", "")
+    assert checker.check(force=True)["configured"] is False
 
     monkeypatch.setattr(update_check, "REPO", REPO)
-    status = checker.check()
+    status = checker.check(force=True)
     assert status["configured"] is True
     assert status["latest"] == "2000.10.02"
 
@@ -567,10 +568,11 @@ def test_api_update_honours_the_refresh_query(tmp_path) -> None:
 
 
 def test_api_update_without_a_repository_is_quiet(tmp_path, no_network) -> None:
-    """The real checker with REPO unset: no request, no error, no update."""
+    """The real checker with no repository (a private fork, say): no
+    request, no error, no update."""
     calls = no_network(error=AssertionError("no repository, no request"))
     handler, responses = _handler(
-        tmp_path, updates=UpdateChecker(state_dir=str(tmp_path / "state")),
+        tmp_path, updates=UpdateChecker(state_dir=str(tmp_path / "state"), repo=""),
         path="/api/update?refresh=1")
 
     handler._api_update()
@@ -672,7 +674,7 @@ def test_api_update_open_reports_when_no_browser_opens(tmp_path, monkeypatch) ->
 def test_api_update_open_without_a_repository_opens_nothing(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(server, "open_url", lambda url: pytest.fail("opened " + url))
     handler, responses = _handler(
-        tmp_path, updates=UpdateChecker(state_dir=str(tmp_path / "state")))
+        tmp_path, updates=UpdateChecker(state_dir=str(tmp_path / "state"), repo=""))
     handler._api_update_open({})
     assert responses[0][1] == 404
 

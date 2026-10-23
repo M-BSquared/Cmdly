@@ -5,13 +5,13 @@ This module compares the running version against the newest published
 release of :data:`REPO` and hands the answer to the page, which raises a
 dialog once per version.
 
-Not configured yet
-------------------
-:data:`REPO` is empty until Cmdly has a public repository. While it is, the
-checker is inert: :meth:`UpdateChecker.check` reaches for nothing, writes no
-cache, reports ``configured: False`` with no error, and so the page shows
-neither a dialog nor a failure. Setting :data:`REPO` to ``"owner/name"`` is
-the whole switch.
+Which repository
+----------------
+:data:`REPO` names the public repository whose releases are checked — the
+whole switch. While it is empty (a private fork, say) the checker is inert:
+:meth:`UpdateChecker.check` reaches for nothing, writes no cache, reports
+``configured: False`` with no error, and so the page shows neither a dialog
+nor a failure.
 
 Offline contract
 ----------------
@@ -51,9 +51,10 @@ from .version import get_version
 
 logger = logging.getLogger("cmdly.update")
 
-# "owner/name" of the GitHub repository whose releases are checked. Empty
-# until Cmdly is published: the update check is then switched off entirely.
-REPO = ""
+# "owner/name" of the GitHub repository whose releases are checked. The
+# whole switch: an empty REPO (a private fork, say) turns the update check
+# off entirely.
+REPO = "M-BSquared/Cmdly"
 
 UPDATE_FILE = "update.json"
 FETCH_TIMEOUT_S = 6.0
